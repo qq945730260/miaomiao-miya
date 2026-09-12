@@ -159,8 +159,6 @@ class H(BaseHTTPRequestHandler):
             conn.close()
             send_json(self, {r[0]: r[1] for r in rows})
         elif path == "/api/categories":
-            if not require_auth(self):
-                return send_json(self, {"error": "unauthorized"}, 401)
             conn = get_db()
             rows = conn.execute("SELECT id, name, sort_order FROM categories ORDER BY sort_order ASC").fetchall()
             conn.close()
