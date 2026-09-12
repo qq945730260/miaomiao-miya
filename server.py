@@ -220,6 +220,21 @@ class H(BaseHTTPRequestHandler):
                 conn2.close()
                 return send_json(self, {"ok": True})
             return send_json(self, {"error": "old password wrong"}, 401)
+        elif path == "/api/categories" and require_auth(self):
+            b = parse_body(self)
+            name = b.get("name", "").strip()
+            if not name:
+                return send_json(self, {"error": "missing name"}, 400)
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("INSERT INTO categories(name, sort_order) VALUES (?,?)",
+                      (name, int(b.get("sort_order", 0))))
+            conn.commit()
+            row = conn.execute(
+                "SELECT id, name, sort_order FROM categories WHERE id=?",
+                (c.lastrowid,)).fetchone()
+            conn.close()
+            send_json(self, {"id": row[0], "name": row[1], "sort_order": row[2]} if row else {}, 201)
         elif path == "/api/products":
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)

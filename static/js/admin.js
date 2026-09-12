@@ -254,7 +254,6 @@ function openModal(mode,id){
     if(p){
       document.getElementById("form-id").value=p.id;
       document.getElementById("form-title").value=p.title||"";
-      document.getElementById("form-name").value=p.name;
       document.getElementById("form-category").value=p.category;
       document.getElementById("form-price").value=p.price;
       document.getElementById("form-stock").value=p.stock;
@@ -268,7 +267,6 @@ function openModal(mode,id){
   }else{
     document.getElementById("form-id").value="";
     document.getElementById("form-title").value="";
-    document.getElementById("form-name").value="";
     document.getElementById("form-price").value="";
     document.getElementById("form-stock").value="";
     document.getElementById("form-image").value="placeholder.jpg";
@@ -320,8 +318,8 @@ function updateDetailRatio(){}
 
 function submitForm(){
   var id=document.getElementById("form-id").value;
-  var name=document.getElementById("form-name").value.trim();
-  var title=document.getElementById("form-title").value.trim();
+  var name=document.getElementById("form-title").value.trim();
+  var title=name;
   var cat=document.getElementById("form-category").value;
   var price=parseFloat(document.getElementById("form-price").value);
   var stock=parseInt(document.getElementById("form-stock").value)||0;
@@ -329,7 +327,7 @@ function submitForm(){
   var detail_image=document.getElementById("form-detail_image").value;
   var desc=document.getElementById("form-desc").value.trim();
   var wechat=document.getElementById("form-wechat").value.trim();
-  if(!name){toast("请填写商品名称");return;}
+  if(!name){toast("请填写商品标题");return;}
   if(isNaN(price)||price<=0){toast("请填写正确价格");return;}
   if(!cat){toast("请选择分类");return;}
   var body={name:name,title:title,category:cat,price:price,stock:stock,image:image,detail_image:detail_image,description:desc,wechat:wechat,qq:""};
