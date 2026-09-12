@@ -67,7 +67,9 @@
         <p id="pay-qrcode-label" style="margin-top:8px;color:var(--brown-light);font-size:0.9rem;"></p>
       </div>
       <div class="btn-row" style="justify-content:center;margin-top:16px;gap:10px;">
-        <button class="btn btn-pink" onclick="confirmPayment()">我已支付</button>
+        <button class="btn btn-pink" onclick="confirmPayment()" style="white-space:nowrap;padding:9px 16px;">
+          支付后点我<br><span style="font-size:0.72rem;opacity:0.85;">可截图发客服确认订单</span>
+        </button>
         <button class="btn btn-secondary btn-sm" onclick="closePayModal()">取消</button>
       </div>
     </div>
