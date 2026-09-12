@@ -375,7 +375,7 @@ class H(BaseHTTPRequestHandler):
             conn.commit()
             conn.close()
             send_json(self, {"ok": True})
-                elif path == "/api/order/confirm":
+        elif path == "/api/order/confirm":
             b = parse_body(self)
             oid = b.get("order_id")
             if not oid:
