@@ -66,8 +66,9 @@
         <img id="pay-qrcode-img" src="" alt="收款码" style="max-width:220px;border-radius:12px;">
         <p id="pay-qrcode-label" style="margin-top:8px;color:var(--brown-light);font-size:0.9rem;"></p>
       </div>
-      <div class="btn-row" style="justify-content:center;margin-top:16px;">
-        <button class="btn btn-pink btn-sm" onclick="closePayModal()">关闭</button>
+      <div class="btn-row" style="justify-content:center;margin-top:16px;gap:10px;">
+        <button class="btn btn-pink" onclick="confirmPayment()">我已支付</button>
+        <button class="btn btn-secondary btn-sm" onclick="closePayModal()">取消</button>
       </div>
     </div>
   </div>
@@ -126,7 +127,7 @@ function createOrderAndShowPay(){
   fetch('/api/order/create',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email,password:password,product_id:currentProduct.id,qty:currentQty})})
     .then(function(r){return r.json();})
     .then(function(d){btn.disabled=false;btn.textContent='确认下单';
-      if(d.ok){document.getElementById('pay-step1').style.display='none';document.getElementById('pay-step2').style.display='';document.getElementById('pay-amount2').textContent='\u00A5'+d.total.toFixed(2);window._currentOrderTotal=d.total;}
+      if(d.ok){document.getElementById('pay-step1').style.display='none';document.getElementById('pay-step2').style.display='';document.getElementById('pay-amount2').textContent='\u00A5'+d.total.toFixed(2);window._currentOrderTotal=d.total;window._currentOrderId=d.order_id;}
       else toast(d.error||'下单失败');
     }).catch(function(){toast("网络错误");btn.disabled=false;btn.textContent='确认下单';});
 }
@@ -135,6 +136,20 @@ function showPayQR(type){var s=window._paySettings||{};var imgKey=type==='wechat
   else{img.style.display='none';lbl.textContent='暂无'+label+'，请先联系客服';}
   area.style.display='block';}
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function confirmPayment(){
+  if(!window._currentOrderId){toast("订单信息丢失，请重新下单");return;}
+  var btn=document.querySelector('#pay-step2 .btn-pink');
+  btn.disabled=true;btn.textContent='确认中...';
+  fetch('/api/order/confirm',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({order_id:window._currentOrderId})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      btn.disabled=false;btn.textContent='我已支付';
+      if(d.ok){
+        document.getElementById('pay-modal').classList.remove('open');
+        toast("订单已确认，7天内可通过邮箱+密码查询订单");
+      }else{toast(d.error||"确认失败");}
+    }).catch(function(){btn.disabled=false;btn.textContent='我已支付';toast("网络错误");});
+}
 loadDetail();
 </script>
 </body>

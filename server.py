@@ -375,6 +375,25 @@ class H(BaseHTTPRequestHandler):
             conn.commit()
             conn.close()
             send_json(self, {"ok": True})
+                elif path == "/api/order/confirm":
+            b = parse_body(self)
+            oid = b.get("order_id")
+            if not oid:
+                return send_json(self, {"error": "missing order_id"}, 400)
+            conn = get_db()
+            order = conn.execute("SELECT * FROM orders WHERE id=?", (int(oid),)).fetchone()
+            if not order:
+                conn.close()
+                return send_json(self, {"error": "订单不存在"}, 404)
+            if order["status"] == "completed":
+                conn.close()
+                return send_json(self, {"ok": True, "already": True})
+            conn.execute("UPDATE products SET stock=stock-? WHERE id=? AND stock>=?",
+                         (order["qty"], order["product_id"], order["qty"]))
+            conn.execute("UPDATE orders SET status='completed' WHERE id=?", (int(oid),))
+            conn.commit()
+            conn.close()
+            send_json(self, {"ok": True})
         elif path == "/api/admin/order/confirm":
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)
