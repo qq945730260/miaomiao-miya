@@ -126,19 +126,10 @@
     </div>
     <div class="form-group">
       <label>详情图（可选）</label>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <div class="upload-zone" onclick="document.getElementById('detail-file-input').click()" style="flex:1;min-width:140px;">点击上传详情图</div>
-        <input type="file" id="detail-file-input" accept="image/*" style="display:none" onchange="uploadDetailImage(event)">
-        <select id="detail-ratio" onchange="updateDetailRatio()" style="padding:6px 10px;border:1px solid #e8d5c4;border-radius:6px;font-size:0.85rem;background:#fff;cursor:pointer;">
-          <option value="1/1">1:1 正方形</option>
-          <option value="2/3">2:3 竖版</option>
-          <option value="3/4">3:4 标准</option>
-        </select>
-      </div>
+      <div class="upload-zone" onclick="document.getElementById('detail-file-input').click()">点击上传详情图</div>
+      <input type="file" id="detail-file-input" accept="image/*" style="display:none" onchange="uploadDetailImage(event)">
       <img id="detail-preview-img" class="preview-img" style="display:none;max-width:150px;margin-top:6px;" alt="详情图预览">
       <input type="hidden" id="form-detail_image" value="">
-      <p style="color:#aaa;font-size:0.78rem;margin-top:4px;">上传后可在上方选择比例预览效果</p>
-    </div>
     <div class="form-group"><label>商品描述</label><textarea id="form-desc" rows="2" placeholder="简短介绍..."></textarea></div>
     <div class="form-group"><label>客服微信（选填）</label><input type="text" id="form-wechat" placeholder="留空则不显示"></div>
     <div class="btn-row">
