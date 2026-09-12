@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+data/
+uploads/
+.DS_Store
+fix_*.py
+build_*.py

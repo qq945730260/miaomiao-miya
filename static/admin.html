@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0">
+<title>后台管理 - 喵喵咪丫</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="header">
+  <div class="logo">喵咪店 · 后台</div>
+  <nav class="nav-links" id="nav-auth" style="display:none;">
+    <a href="/" target="_blank">查看网站</a>
+    <a href="#" onclick="logout();return false;">退出登录</a>
+  </nav>
+</header>
+
+<div id="login-section">
+  <div class="login-box">
+    <h2>登录后台</h2>
+    <div class="form-group"><label>用户名</label><input type="text" id="login-user" placeholder="xuxu" autocomplete="username"></div>
+    <div class="form-group"><label>密码</label><input type="password" id="login-pass" placeholder="••••••" autocomplete="current-password"></div>
+    <button class="btn btn-pink" style="width:100%;justify-content:center;margin-top:8px;" onclick="doLogin()">登录</button>
+  </div>
+</div>
+
+<div id="admin-main" class="admin-wrap" style="display:none;">
+  <!-- 网站设置 -->
+  <div class="table-wrap" style="margin-bottom:24px;">
+    <div style="padding:18px 22px;border-bottom:2px solid #fce4ec;"><h2 style="color:var(--pink-dark);">网站设置</h2></div>
+    <div style="padding:18px 22px;">
+      <div class="form-group"><label>网站名称</label><input type="text" id="form-site_title" placeholder="喵喵咪丫"></div>
+      <div class="form-group"><label>网站标语</label><input type="text" id="form-site_tagline" placeholder="遇见你的小可爱"></div>
+      <div class="form-group"><label>微信客服二维码</label>
+        <div class="upload-zone" onclick="document.getElementById('qr-input').click()">点击上传二维码图片</div>
+        <input type="file" id="qr-input" accept="image/*" style="display:none" onchange="uploadQRImage(event)">
+        <img id="settings-qr-preview" class="preview-img" style="display:none;max-width:180px;" alt="二维码">
+        <input type="hidden" id="form-wechat_qr" value="">
+      </div>
+      <div class="payment-qr-section" style="margin-top:16px;padding-top:16px;border-top:1px solid #fce4ec;">
+        <h3 style="font-size:1rem;color:var(--pink-dark);margin-bottom:12px;">收款码设置</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group"><label>微信收款码</label>
+            <div class="upload-zone" onclick="document.getElementById('wechat-pay-input').click()">点击上传</div>
+            <input type="file" id="wechat-pay-input" accept="image/*" style="display:none" onchange="uploadPayQRImage(event,'wechat')">
+            <img id="wechat-pay-preview" class="preview-img" style="display:none;max-width:150px;margin-top:6px;" alt="微信收款码">
+            <input type="hidden" id="form-wechat_pay_qr" value="">
+          </div>
+          <div class="form-group"><label>支付宝收款码</label>
+            <div class="upload-zone" onclick="document.getElementById('alipay-pay-input').click()">点击上传</div>
+            <input type="file" id="alipay-pay-input" accept="image/*" style="display:none" onchange="uploadPayQRImage(event,'alipay')">
+            <img id="alipay-pay-preview" class="preview-img" style="display:none;max-width:150px;margin-top:6px;" alt="支付宝收款码">
+            <input type="hidden" id="form-alipay_qr" value="">
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-pink" onclick="saveSettings()" style="margin-top:8px;">保存设置</button>
+    </div>
+  </div>
+
+  <!-- 分类管理 -->
+  <div class="table-wrap" style="margin-bottom:24px;">
+    <div style="padding:18px 22px;border-bottom:2px solid #fce4ec;"><h2 style="color:var(--pink-dark);">分类管理</h2></div>
+    <div style="padding:18px 22px;">
+      <p style="color:#aaa;font-size:0.82rem;margin-bottom:12px;">修改名称或排序后点保存，首页导航栏即时生效</p>
+      <div id="cat-list"></div>
+      <button class="btn btn-pink" onclick="saveCategories()" style="margin-top:8px;">保存分类</button>
+      <button class="btn btn-sm" onclick="addCategory()" style="margin-top:8px;margin-left:8px;background:#eee;color:var(--brown);">＋ 新增分类</button>
+    </div>
+  </div>
+
+  <!-- 商品管理 -->
+  <div class="admin-toolbar">
+    <h2>商品管理 (<span id="product-count">0</span>/30)</h2>
+    <button class="btn btn-pink" onclick="openModal('add')">＋ 新增商品</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>图片</th><th>ID</th><th>标题</th><th>名称</th><th>分类</th><th>价格</th><th>库存</th><th>操作</th></tr></thead>
+      <tbody id="product-table-body"></tbody>
+    </table>
+  </div>
+
+  <!-- 订单管理 -->
+  <div class="admin-toolbar" style="margin-top:28px;">
+    <h2>订单管理 (<span id="order-count">0</span>)</h2>
+    <button class="btn btn-sm" onclick="cleanOrders()" style="background:#eee;color:var(--brown);">清理过期订单</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>ID</th><th>商品</th><th>邮箱</th><th>数量</th><th>金额</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+      <tbody id="order-table-body"></tbody>
+    </table>
+  </div>
+
+  <!-- 修改密码（末尾） -->
+  <div class="table-wrap" style="margin-top:24px;">
+    <div style="padding:18px 22px;border-bottom:2px solid #fce4ec;"><h2 style="color:var(--pink-dark);">修改密码</h2></div>
+    <div style="padding:18px 22px;">
+      <div class="form-group"><label>当前密码</label><input type="password" id="form-old_password" placeholder="输入当前密码"></div>
+      <div class="form-group"><label>新密码</label><input type="password" id="form-new_password" placeholder="输入新密码"></div>
+      <div class="form-group"><label>确认新密码</label><input type="password" id="form-confirm_password" placeholder="再次输入新密码"></div>
+      <button class="btn btn-pink" onclick="changePassword()">修改密码</button>
+    </div>
+  </div>
+</div>
+
+<!-- 商品弹窗 -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">新增商品</h3>
+    <input type="hidden" id="form-id">
+    <div class="form-group"><label>商品标题（≤60字，用于搜索和展示）</label><input type="text" id="form-title" placeholder="如：金渐层幼猫A窝精品"></div>
+    <div class="form-group"><label>商品名称 *</label><input type="text" id="form-name" placeholder="如：金渐层幼猫 A"></div>
+    <div class="form-group"><label>分类 *</label>
+      <select id="form-category"><option value="">请选择分类</option></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group"><label>价格（元）*</label><input type="number" id="form-price" placeholder="0.00" step="0.01"></div>
+      <div class="form-group"><label>库存数量</label><input type="number" id="form-stock" placeholder="0"></div>
+    </div>
+    <div class="form-group"><label>商品图片（头图，1:1）</label>
+      <div class="upload-zone" onclick="document.getElementById('file-input').click()">点击上传头图</div>
+      <input type="file" id="file-input" accept="image/*" style="display:none" onchange="uploadImage(event)">
+      <img id="preview-img" class="preview-img" style="display:none;max-width:150px;" alt="预览">
+      <input type="hidden" id="form-image" value="placeholder.jpg">
+    </div>
+    <div class="form-group">
+      <label>详情图（可选）</label>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div class="upload-zone" onclick="document.getElementById('detail-file-input').click()" style="flex:1;min-width:140px;">点击上传详情图</div>
+        <input type="file" id="detail-file-input" accept="image/*" style="display:none" onchange="uploadDetailImage(event)">
+        <select id="detail-ratio" onchange="updateDetailRatio()" style="padding:6px 10px;border:1px solid #e8d5c4;border-radius:6px;font-size:0.85rem;background:#fff;cursor:pointer;">
+          <option value="1/1">1:1 正方形</option>
+          <option value="2/3">2:3 竖版</option>
+          <option value="3/4">3:4 标准</option>
+        </select>
+      </div>
+      <img id="detail-preview-img" class="preview-img" style="display:none;max-width:150px;margin-top:6px;" alt="详情图预览">
+      <input type="hidden" id="form-detail_image" value="">
+      <p style="color:#aaa;font-size:0.78rem;margin-top:4px;">上传后可在上方选择比例预览效果</p>
+    </div>
+    <div class="form-group"><label>商品描述</label><textarea id="form-desc" rows="2" placeholder="简短介绍..."></textarea></div>
+    <div class="form-group"><label>客服微信（选填）</label><input type="text" id="form-wechat" placeholder="留空则不显示"></div>
+    <div class="btn-row">
+      <button class="btn btn-pink" onclick="submitForm()">保存</button>
+      <button class="btn btn-sm" style="background:#ccc;" onclick="closeModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/static/js/admin.js"></script>
+<script>
+function doLogin(){ login(document.getElementById("login-user").value, document.getElementById("login-pass").value); }
+document.getElementById("login-pass").addEventListener("keydown", function(e){ if(e.key==="Enter") doLogin(); });
+</script>
+</body>
+</html>
