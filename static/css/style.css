@@ -54,6 +54,8 @@ a { color: inherit; text-decoration: none; }
 .btn-wechat:hover { background: var(--mint-dark); }
 .btn-pink { background: var(--pink); color: var(--white); }
 .btn-pink:hover { background: var(--pink-dark); }
+.btn-secondary { background: #e0e0e0; color: #555; border: none; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: background .2s; }
+.btn-secondary:hover { background: #ccc; }
 .btn-sm { padding: 6px 14px; font-size: 0.82rem; }
 
 /* Product Detail */

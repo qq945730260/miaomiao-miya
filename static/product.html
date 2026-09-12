@@ -44,8 +44,9 @@
       <div class="form-group"><label>您的邮箱 *</label><input type="email" id="pay-email" placeholder="example@mail.com"></div>
       <div class="form-group"><label>查询密码（6-8位数字，用于以后查询订单）*</label><input type="password" id="pay-password" placeholder="请输入6-8位数字" maxlength="8" pattern="[0-9]*"></div>
       <div class="pay-total">应付金额：<span id="pay-amount" style="color:var(--pink-dark);font-size:1.5rem;font-weight:800;">￥0</span></div>
-      <div class="btn-row" style="justify-content:center;">
+      <div class="btn-row" style="justify-content:center;gap:12px;">
         <button class="btn btn-pink" onclick="createOrderAndShowPay()">确认下单</button>
+        <button class="btn btn-pink" style="background:#ccc;" onclick="closePayModal()">返回</button>
       </div>
     </div>
     <div id="pay-step2" style="display:none;">
