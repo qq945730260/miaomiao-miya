@@ -31,27 +31,24 @@
     <div style="padding:18px 22px;">
       <div class="form-group"><label>网站名称</label><input type="text" id="form-site_title" placeholder="喵喵咪丫"></div>
       <div class="form-group"><label>网站标语</label><input type="text" id="form-site_tagline" placeholder="遇见你的小可爱"></div>
-      <div class="form-group"><label>微信客服二维码</label>
-        <div class="upload-zone" onclick="document.getElementById('qr-input').click()">点击上传二维码图片</div>
-        <input type="file" id="qr-input" accept="image/*" style="display:none" onchange="uploadQRImage(event)">
-        <img id="settings-qr-preview" class="preview-img" style="display:none;max-width:180px;" alt="二维码">
-        <input type="hidden" id="form-wechat_qr" value="">
-      </div>
-      <div class="payment-qr-section" style="margin-top:16px;padding-top:16px;border-top:1px solid #fce4ec;">
-        <h3 style="font-size:1rem;color:var(--pink-dark);margin-bottom:12px;">收款码设置</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-          <div class="form-group"><label>微信收款码</label>
-            <div class="upload-zone" onclick="document.getElementById('wechat-pay-input').click()">点击上传</div>
-            <input type="file" id="wechat-pay-input" accept="image/*" style="display:none" onchange="uploadPayQRImage(event,'wechat')">
-            <img id="wechat-pay-preview" class="preview-img" style="display:none;max-width:150px;margin-top:6px;" alt="微信收款码">
-            <input type="hidden" id="form-wechat_pay_qr" value="">
-          </div>
-          <div class="form-group"><label>支付宝收款码</label>
-            <div class="upload-zone" onclick="document.getElementById('alipay-pay-input').click()">点击上传</div>
-            <input type="file" id="alipay-pay-input" accept="image/*" style="display:none" onchange="uploadPayQRImage(event,'alipay')">
-            <img id="alipay-pay-preview" class="preview-img" style="display:none;max-width:150px;margin-top:6px;" alt="支付宝收款码">
-            <input type="hidden" id="form-alipay_qr" value="">
-          </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:8px;">
+        <div class="form-group"><label>微信客服二维码</label>
+          <div class="upload-zone" onclick="document.getElementById('qr-input').click()">点击上传</div>
+          <input type="file" id="qr-input" accept="image/*" style="display:none" onchange="uploadQRImage(event)">
+          <img id="settings-qr-preview" class="preview-img" style="display:none;max-width:100%;margin-top:6px;" alt="二维码">
+          <input type="hidden" id="form-wechat_qr" value="">
+        </div>
+        <div class="form-group"><label>微信收款码</label>
+          <div class="upload-zone" onclick="document.getElementById('wechat-pay-input').click()">点击上传</div>
+          <input type="file" id="wechat-pay-input" accept="image/*" style="display:none" onchange="uploadPayQRImage(event,'wechat')">
+          <img id="wechat-pay-preview" class="preview-img" style="display:none;max-width:100%;margin-top:6px;" alt="微信收款码">
+          <input type="hidden" id="form-wechat_pay_qr" value="">
+        </div>
+        <div class="form-group"><label>支付宝收款码</label>
+          <div class="upload-zone" onclick="document.getElementById('alipay-pay-input').click()">点击上传</div>
+          <input type="file" id="alipay-pay-input" accept="image/*" style="display:none" onchange="uploadPayQRImage(event,'alipay')">
+          <img id="alipay-pay-preview" class="preview-img" style="display:none;max-width:100%;margin-top:6px;" alt="支付宝收款码">
+          <input type="hidden" id="form-alipay_qr" value="">
         </div>
       </div>
       <button class="btn btn-pink" onclick="saveSettings()" style="margin-top:8px;">保存设置</button>
