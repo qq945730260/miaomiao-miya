@@ -140,7 +140,8 @@ CREATE TABLE admin (
 | DELETE | `/api/products?id=X` | 删除商品 |
 | POST | `/api/upload` | 上传图片 |
 | GET/POST | `/api/admin/payment_qrcodes` | 收款码设置 |
-| PUT | `/api/admin/order/confirm` | 确认订单（扣库存） |
+| POST | `/api/order/confirm` | 客户确认支付（公开接口，自动扣库存） |
+| PUT | `/api/admin/order/confirm` | 后台确认订单（管理员） |
 | DELETE | `/api/admin/order/clean` | 清理过期订单 |
 | DELETE | `/api/admin/order/delete` | 删除指定订单 |
 | GET | `/api/orders` | 获取全部订单 |
@@ -177,6 +178,8 @@ CREATE TABLE admin (
 ### 5. 支付收款
 - 后台上传微信/支付宝收款码图片（静态个人码）
 - 详情页展示收款码 + 实付金额文字提示
+- 付款码显示后新增"我已支付"按钮，点击后自动确认订单并扣减库存，弹窗自动关闭并提示"7天内可查询"
+- 新增公开接口 /api/order/confirm（无需登录），客户可直接确认支付
 - 不支持动态金额收款码（需商户 API）
 
 ---
