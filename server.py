@@ -25,6 +25,7 @@ def get_db():
 
 
 def init_db():
+    """Ensure schema exists; data is loaded from git on startup."""
     conn = get_db()
     c = conn.cursor()
     c.execute("""CREATE TABLE IF NOT EXISTS products (
@@ -56,15 +57,7 @@ def init_db():
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL DEFAULT '')""")
     c.execute("CREATE TABLE IF NOT EXISTS admin (username TEXT PRIMARY KEY, password TEXT)")
-    for k, v in [("site_title","喵喵咪丫"),("shop_description",""),
-                  ("wechat_pay_qr",""),("alipay_qr",""),("wechat_qr",""),
-                  ("shop_logo","")]:
-        c.execute("INSERT OR IGNORE INTO settings VALUES (?,?)", (k, v))
-    if c.execute("SELECT COUNT(*) FROM admin").fetchone()[0] == 0:
-        c.execute("INSERT INTO admin VALUES (?,?)", (ADMIN_USER, ADMIN_PASS))
-    if c.execute("SELECT COUNT(*) FROM categories").fetchone()[0] == 0:
-        for name, order in [("萌宠", 0), ("宠物用品", 1), ("其它", 2)]:
-            c.execute("INSERT INTO categories(name, sort_order) VALUES (?,?)", (name, order))
+    # Default data is committed to git; only add missing columns for schema migrations
     try:
         conn.execute("ALTER TABLE products ADD COLUMN detail_image TEXT DEFAULT ''")
         conn.commit()
@@ -179,6 +172,18 @@ def auto_commit():
     except Exception as e:
         log_sync('EXC: ' + str(e))
         print("AUTO-COMMIT EXCEPTION:", str(e), flush=True)
+
+def pull_data_from_git():
+    """Pull latest data/uploads from git on startup to restore persisted data."""
+    try:
+        r = subprocess.run(['git', '-c', 'safe.directory=*', 'pull', 'origin', 'v5'],
+            capture_output=True, timeout=15, cwd=BASE_DIR)
+        if r.returncode == 0:
+            log_sync('OK: pulled on startup')
+        else:
+            log_sync('SKIP: pull not needed or failed')
+    except Exception as e:
+        log_sync('SKIP: pull exception: ' + str(e))
 
 
 def clean_expired(conn):
@@ -585,6 +590,7 @@ class H(BaseHTTPRequestHandler):
 
 
 def main():
+    pull_data_from_git()
     init_db()
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     port = int(os.environ.get("PORT", 8000))
