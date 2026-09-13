@@ -154,26 +154,24 @@ def do_commit(force=False):
         return {"ok": False, "error": str(e)}
 
 def auto_commit():
-    """Push data/uploads to the 'data' branch (separate from code)."""
+    """Commit and push data/uploads to main branch."""
     token = os.environ.get('GH_TOKEN', '').strip()
     if not token:
         log_sync('SKIP: GH_TOKEN not set')
         return
     try:
-        # Stage data and uploads
         r = subprocess.run(['git', '-c', 'safe.directory=*', 'add', '-A', 'data/', 'uploads/'],
             capture_output=True, timeout=10, cwd=BASE_DIR)
         r2 = subprocess.run(['git', '-c', 'safe.directory=*', 'commit', '-q', '--allow-empty', '-m', 'auto-commit data'],
             capture_output=True, timeout=10, cwd=BASE_DIR)
         if b'nothing' in r2.stdout or b'nothing' in r2.stderr:
-            log_sync('SKIP: no data changes')
+            log_sync('SKIP: no changes')
             return
-        # Push to 'data' branch (not main)
         r3 = subprocess.run(['git', '-c', 'safe.directory=*',
-            'push', 'https://'+token+'@github.com/qq945730260/miaomiao-miya.git', 'data'],
+            'push', 'https://'+token+'@github.com/qq945730260/miaomiao-miya.git', 'main'],
             capture_output=True, timeout=30, cwd=BASE_DIR)
         if r3.returncode == 0:
-            log_sync('OK: pushed to data branch')
+            log_sync('OK: pushed to main')
         else:
             err = r3.stderr.decode("utf-8", errors="replace")[:300]
             log_sync('FAIL: ' + err)
@@ -181,32 +179,6 @@ def auto_commit():
     except Exception as e:
         log_sync('EXC: ' + str(e))
         print("AUTO-COMMIT EXCEPTION:", str(e), flush=True)
-def restore_data():
-    """Pull latest data from 'data' branch on startup to restore DB and uploads."""
-    token = os.environ.get('GH_TOKEN', '').strip()
-    if not token:
-        log_sync('SKIP: GH_TOKEN not set, cannot restore data')
-        return
-    try:
-        # Fetch all branches
-        subprocess.run(['git', '-c', 'safe.directory=*', 'fetch', '--all'],
-            capture_output=True, timeout=10, cwd=BASE_DIR)
-        # Check if data branch exists
-        r = subprocess.run(['git', '-c', 'safe.directory=*', 'branch', '-r'],
-            capture_output=True, text=True, timeout=10, cwd=BASE_DIR)
-        if 'origin/data' not in r.stdout:
-            log_sync('SKIP: no data branch found')
-            return
-        # Checkout data branch to restore files
-        subprocess.run(['git', '-c', 'safe.directory=*', 'checkout', 'data'],
-            capture_output=True, timeout=10, cwd=BASE_DIR)
-        log_sync('OK: restored data from data branch')
-        print("Data restored from data branch", flush=True)
-    except Exception as e:
-        log_sync('RESTORE EXC: ' + str(e))
-        print("Data restore failed:", str(e), flush=True)
-
-
 
 
 def clean_expired(conn):
@@ -613,7 +585,6 @@ class H(BaseHTTPRequestHandler):
 
 
 def main():
-    restore_data()  # Pull latest data from 'data' branch
     init_db()
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     port = int(os.environ.get("PORT", 8000))

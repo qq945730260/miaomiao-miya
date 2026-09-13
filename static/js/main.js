@@ -14,10 +14,6 @@ function loadSettings(){
       var logo=document.getElementById('site-logo');
       if(logo)logo.textContent=esc(s.site_title);
     }
-    if(s&&s.shop_description){
-      var desc=document.getElementById('hero-subtitle');
-      if(desc)desc.textContent=esc(s.shop_description);
-    }
     // hero-announcement: shop_description supports <br> for line breaks
     var ann=document.getElementById('hero-announcement');
     if(ann&&s.shop_description){ann.innerHTML=esc(s.shop_description).replace(/\n/g,'<br>');}
