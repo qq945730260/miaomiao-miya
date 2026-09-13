@@ -88,11 +88,14 @@ var currentProduct=null,currentQty=1,_paySettings={};
 function loadDetail(){
   var params=new URLSearchParams(location.search);var id=params.get("id");
   if(!id){location.href="/";return;}
+  var detailEl=document.getElementById('detail');
+  var timeout=setTimeout(function(){detailEl.innerHTML='<p class="loading-text" style="color:#e74c3c;">加载超时，请刷新重试</p>';},10000);
   Promise.all([fetch("/api/settings"),fetch("/api/products?id="+id)])
     .then(function(responses){return Promise.all(responses.map(function(r){return r.json();}));})
     .then(function(data){
+      clearTimeout(timeout);
       siteSettings=data[0]||{};var prod=data[1];
-      if(!prod||!prod.id){document.getElementById('detail').innerHTML='<p class="loading-text" style="color:#e74c3c;">商品不存在</p>';return;}
+      if(!prod||!prod.id){detailEl.innerHTML='<p class="loading-text" style="color:#e74c3c;">商品不存在</p>';return;}
       currentProduct=prod;currentQty=1;
       var stockHtml=prod.stock>0?'<span style="color:#7BC89A;font-weight:700;">有货 ('+prod.stock+' 件)</span>':'<span style="color:#e74c3c;font-weight:700;">已售罄</span>';
       var titleHtml=prod.title?'<h1>'+esc(prod.title)+'</h1>':'<h1>'+esc(prod.name)+'</h1>';
@@ -106,10 +109,10 @@ function loadDetail(){
       var descHtml='<p class="detail-desc">'+esc(prod.description||'联系我们了解更多')+'</p>';
       var detImgHtml='';
       if(prod.detail_image){detImgHtml+='<div class="detail-img-wrap"><img class="detail-img" id="detail-main-img" src="/uploads/'+esc(prod.detail_image)+'" alt="详情图" onerror="this.parentElement.style.display=\'none\'"></div>';}
-      document.getElementById('detail').innerHTML=topHtml+descHtml+detImgHtml;
+      detailEl.innerHTML=topHtml+descHtml+detImgHtml;
       if(siteSettings&&siteSettings.site_title){document.title=siteSettings.site_title+' - '+esc(prod.name);var logo=document.getElementById('site-logo');if(logo)logo.textContent=esc(siteSettings.site_title);}
     })
-    .catch(function(e){console.error(e);document.getElementById('detail').innerHTML='<p class="loading-text" style="color:#e74c3c;">加载失败</p>';});
+    .catch(function(e){clearTimeout(timeout);console.error(e);detailEl.innerHTML='<p class="loading-text" style="color:#e74c3c;">加载失败，请刷新重试</p>';});
 }
 function buildQtySection(price,stock){
   if(stock<=0)return '';
@@ -148,7 +151,7 @@ function esc(s){var d=document.createElement('div');d.textContent=s;return d.inn
 function showOrderSuccess(){
   document.getElementById('pay-modal').classList.remove('open');
   var overlay=document.createElement('div');overlay.className='modal-overlay';overlay.id='success-overlay';
-  overlay.innerHTML='<div class="modal" style="padding:28px;width:320px;text-align:center;"><h3 style="color:#7BC89A;margin-bottom:12px;">✓ 订单已确认</h3><p style="color:var(--brown);margin-bottom:6px;font-size:0.95rem;">您的订单已提交成功</p><p style="color:var(--pink-dark);font-weight:700;font-size:1.1rem;margin-bottom:16px;">订单查询有效期 1 天</p><p style="color:#aaa;font-size:0.78rem;margin-bottom:18px;">请保存好邮箱和查询密码，用于后续查询</p><button class="btn btn-pink" onclick="document.getElementById('success-overlay').remove()">关闭</button></div>';
+  var _sod='success-overlay'; overlay.innerHTML='<div class="modal" style="padding:28px;width:320px;text-align:center;"><h3 style="color:#7BC89A;margin-bottom:12px;">✓ 订单已确认</h3><p style="color:var(--brown);margin-bottom:6px;font-size:0.95rem;">您的订单已提交成功</p><p style="color:var(--pink-dark);font-weight:700;font-size:1.1rem;margin-bottom:16px;">订单查询有效期 1 天</p><p style="color:#aaa;font-size:0.78rem;margin-bottom:18px;">请保存好邮箱和查询密码，用于后续查询</p><button class="btn btn-pink" onclick="document.getElementById('+_sod+').remove()">关闭</button></div>';
   document.body.appendChild(overlay);
   overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};
 }
