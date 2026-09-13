@@ -18,7 +18,9 @@ function loadSettings(){
       var desc=document.getElementById('hero-subtitle');
       if(desc)desc.textContent=esc(s.shop_description);
     }
-    // hero-announcement left empty - site name already in header next to logo
+    // hero-announcement: shop_description supports <br> for line breaks
+    var ann=document.getElementById('hero-announcement');
+    if(ann&&s.shop_description){ann.innerHTML=esc(s.shop_description).replace(/\n/g,'<br>');}
     var img=document.getElementById('shop-logo-img');
     if(img&&s.shop_logo){img.src='/uploads/'+s.shop_logo;img.style.display='inline-block';}
     else if(img){img.style.display='none';}
