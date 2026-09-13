@@ -18,7 +18,7 @@ function loadSettings(){
       var desc=document.getElementById('hero-subtitle');
       if(desc)desc.textContent=esc(s.shop_description);
     }
-    var ht=document.getElementById('hero-title');
+    var ht=document.getElementById('hero-announcement');
     if(ht)ht.textContent=s&&s.site_title?s.site_title:'喵喵咪丫';
     var img=document.getElementById('shop-logo-img');
     if(img&&s.shop_logo){img.src='/uploads/'+s.shop_logo;img.style.display='inline-block';}
