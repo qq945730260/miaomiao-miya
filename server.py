@@ -76,6 +76,7 @@ def init_db():
     except Exception:
         pass
     conn.close()
+    auto_commit()
 
 
 def send_json(h, data, status=200):
@@ -323,12 +324,8 @@ class H(BaseHTTPRequestHandler):
             pid = c.lastrowid
             row = conn.execute("SELECT * FROM products WHERE id=?", (pid,)).fetchone()
             conn.close()
+            auto_commit()
             send_json(self, dict(row) if row else {}, 201)
-        elif path == "/api/admin/sync":
-            if not require_auth(self):
-                return send_json(self, {"error": "unauthorized"}, 401)
-            result = do_commit(force=True)
-            send_json(self, result)
         elif path == "/api/upload":
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)
@@ -355,6 +352,7 @@ class H(BaseHTTPRequestHandler):
                     os.makedirs(UPLOAD_DIR, exist_ok=True)
                     with open(os.path.join(UPLOAD_DIR, sn), "wb") as f:
                         f.write(data.rstrip(b"\r\n"))
+                    auto_commit()
                     return send_json(self, {"filename": sn})
             send_json(self, {"error": "no image"}, 400)
         elif path == "/api/order/create":
@@ -380,6 +378,7 @@ class H(BaseHTTPRequestHandler):
             conn.commit()
             oid = c.lastrowid
             conn.close()
+            auto_commit()
             send_json(self, {"ok": True, "order_id": oid, "total": total, "product_name": product["name"]})
         elif path == "/api/order/query":
             b = parse_body(self)
@@ -436,6 +435,7 @@ class H(BaseHTTPRequestHandler):
                 conn.execute("INSERT OR REPLACE INTO settings VALUES (?,?)", (k, str(v)))
             conn.commit()
             conn.close()
+            auto_commit()
             send_json(self, {"ok": True})
         elif path == "/api/categories" and require_auth(self):
             b = parse_body(self)
@@ -468,6 +468,7 @@ class H(BaseHTTPRequestHandler):
             conn.execute("UPDATE orders SET status='completed' WHERE id=?", (int(oid),))
             conn.commit()
             conn.close()
+            auto_commit()
             send_json(self, {"ok": True})
         elif path == "/api/admin/order/confirm":
             if not require_auth(self):
