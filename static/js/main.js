@@ -32,6 +32,7 @@ function loadCategories(){
 
 function renderCatNav(){
   var nav=document.getElementById('cat-nav');
+  if(!nav)return;
   var inner=nav.querySelector('.cat-nav-inner');
   if(!inner)return;
   var existing=inner.querySelectorAll('.cat-btn:not([data-cat="all"])');
@@ -103,28 +104,35 @@ function showWechatQR(){
 function closeQR(){document.getElementById('qr-modal').classList.remove('open');}
 
 function openOrderQuery(){
-  document.getElementById('order-query-email').value='';
-  document.getElementById('order-query-password').value='';
-  document.getElementById('order-query-result').style.display='none';
-  document.getElementById('order-query-result').innerHTML='';
-  document.getElementById('order-query-modal').classList.add('open');
+  var emailEl=document.getElementById('order-query-email');
+  var pwdEl=document.getElementById('order-query-password');
+  var resultEl=document.getElementById('order-query-result');
+  var modalEl=document.getElementById('order-query-modal');
+  if(emailEl)emailEl.value='';
+  if(pwdEl)pwdEl.value='';
+  if(resultEl){resultEl.style.display='none';resultEl.innerHTML='';}
+  if(modalEl)modalEl.classList.add('open');
 }
-function closeOrderQuery(){document.getElementById('order-query-modal').classList.remove('open');}
+function closeOrderQuery(){var m=document.getElementById('order-query-modal');if(m)m.classList.remove('open');}
 
 function doQueryOrder(){
-  var email=document.getElementById('order-query-email').value.trim().toLowerCase();
-  var password=document.getElementById('order-query-password').value;
+  var emailEl=document.getElementById('order-query-email');
+  var pwdEl=document.getElementById('order-query-password');
+  var resultDiv=document.getElementById('order-query-result');
+  var email=emailEl?emailEl.value.trim().toLowerCase():'';
+  var password=pwdEl?pwdEl.value:'';
   if(!email||!password){toast("请输入邮箱和密码");return;}
   if(!/^[0-9]{6,8}$/.test(password)){toast("查询密码为6-8位数字");return;}
-  var resultDiv=document.getElementById('order-query-result');
-  resultDiv.style.display='block';
-  resultDiv.innerHTML='<p style="color:var(--brown-light);text-align:center;">查询中...</p>';
+  if(resultDiv){
+    resultDiv.style.display='block';
+    resultDiv.innerHTML='<p style="color:var(--brown-light);text-align:center;">查询中...</p>';
+  }
   fetch(API+'/order/query',{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email,password:password})})
     .then(function(r){return r.json();})
     .then(function(d){
       if(d.id){
         var st=d.status==='completed'?'<span style="color:#7BC89A;font-weight:700;">已确认</span>':'<span style="color:#e67e22;font-weight:700;">待付款确认</span>';
-        resultDiv.innerHTML='<div style="background:#fff8f0;border-radius:10px;padding:14px;border:1px solid #fce4ec;">'
+        if(resultDiv)resultDiv.innerHTML='<div style="background:#fff8f0;border-radius:10px;padding:14px;border:1px solid #fce4ec;">'
           +'<p><strong>订单编号：</strong>'+d.id+'</p>'
           +'<p><strong>商品：</strong>'+esc(d.product_name)+'</p>'
           +'<p><strong>数量：</strong>'+d.qty+' 件</p>'
@@ -132,9 +140,9 @@ function doQueryOrder(){
           +'<p><strong>状态：</strong>'+st+'</p>'
           +'<p style="font-size:0.78rem;color:#aaa;margin-top:8px;">订单保留7天后自动清除</p>'
           +'</div>';
-      }else{resultDiv.innerHTML='<p style="color:#e74c3c;text-align:center;">'+esc(d.error||'未找到订单')+'</p>';}
+      }else{if(resultDiv)resultDiv.innerHTML='<p style="color:#e74c3c;text-align:center;">'+esc(d.error||'未找到订单')+'</p>';}
     })
-    .catch(function(){resultDiv.innerHTML='<p style="color:#e74c3c;text-align:center;">网络错误</p>';});
+    .catch(function(){if(resultDiv)resultDiv.innerHTML='<p style="color:#e74c3c;text-align:center;">网络错误</p>';});
 }
 
 function toast(msg){
@@ -146,7 +154,9 @@ function toast(msg){
 }
 
 document.addEventListener('DOMContentLoaded',function(){
-  loadSettings();
-  loadCategories();
-  loadProducts();
+  if(document.getElementById('hero-announcement')||document.getElementById('cat-nav')||document.getElementById('main-content')){
+    loadSettings();
+    loadCategories();
+    loadProducts();
+  }
 });
