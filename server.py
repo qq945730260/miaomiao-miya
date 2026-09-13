@@ -1,7 +1,8 @@
 """Pet Shop Server V4"""
-import json, os, secrets, sqlite3, time, re
+import json, os, secrets, sqlite3, time, re, subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
+import subprocess
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -75,7 +76,6 @@ def init_db():
     except Exception:
         pass
     conn.close()
-    auto_commit()
 
 
 def send_json(h, data, status=200):
@@ -112,22 +112,48 @@ def parse_body(h):
         return {}
 
 
-def auto_commit():
-    """Persist data/uploads to git so Render ephemeral FS doesn't lose them."""
-    token = os.environ.get('GH_TOKEN', '').strip()
-    if not token:
-        return
+SYNC_LOG = os.path.join(BASE_DIR, "data", "sync.log")
+
+def log_sync(msg):
     try:
-        subprocess.run(['git', '-c', 'safe.directory=*', 'add', '-A', 'data/', 'uploads/'],
-            capture_output=True, timeout=10, cwd=BASE_DIR)
-        r = subprocess.run(['git', '-c', 'safe.directory=*', 'commit', '-q', '--allow-empty', '-m', 'auto-commit data'],
-            capture_output=True, timeout=10, cwd=BASE_DIR)
-        if b'nothing' not in r.stdout and b'nothing' not in r.stderr:
-            subprocess.run(['git', '-c', 'safe.directory=*',
-                'push', 'https://'+token+'@github.com/qq945730260/miaomiao-miya.git', 'main'],
-                capture_output=True, timeout=30, cwd=BASE_DIR)
+        os.makedirs(os.path.dirname(SYNC_LOG), exist_ok=True)
+        with open(SYNC_LOG, "a", encoding="utf-8") as f:
+            f.write(time.strftime("%Y-%m-%d %H:%M:%S") + " " + msg + "\n")
     except Exception:
         pass
+
+def do_commit(force=False):
+    """Commit and push data/uploads to git."""
+    token = os.environ.get('GH_TOKEN', '').strip()
+    if not token:
+        log_sync('SKIP: GH_TOKEN not set')
+        return {"ok": False, "error": "GH_TOKEN未配置"}
+    try:
+        r = subprocess.run(['git', '-c', 'safe.directory=*', 'add', '-A', 'data/', 'uploads/'],
+            capture_output=True, timeout=10, cwd=BASE_DIR)
+        r2 = subprocess.run(['git', '-c', 'safe.directory=*', 'commit', '-q', '--allow-empty', '-m', 'auto-commit data'],
+            capture_output=True, timeout=10, cwd=BASE_DIR)
+        changed = b'nothing' not in r2.stdout and b'nothing' not in r2.stderr
+        if not changed and not force:
+            log_sync('SKIP: no changes')
+            return {"ok": True, "message": "no_changes"}
+        if changed or force:
+            r3 = subprocess.run(['git', '-c', 'safe.directory=*',
+                'push', 'https://'+token+'@github.com/qq945730260/miaomiao-miya.git', 'main'],
+                capture_output=True, timeout=30, cwd=BASE_DIR)
+            if r3.returncode == 0:
+                log_sync('OK: pushed')
+                return {"ok": True, "message": "已同步"}
+            else:
+                err = r3.stderr.decode("utf-8", errors="replace")[:300]
+                log_sync('FAIL: ' + err)
+                return {"ok": False, "error": err}
+    except Exception as e:
+        log_sync('EXC: ' + str(e))
+        return {"ok": False, "error": str(e)}
+
+def auto_commit():
+    return do_commit()
 
 def clean_expired(conn):
     cutoff = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time() - ORDER_RETENTION_DAYS * 86400))
@@ -194,6 +220,31 @@ class H(BaseHTTPRequestHandler):
             send_json(self, [dict(r) for r in rows])
         elif path == "/uploads":
             send_json(self, os.listdir(UPLOAD_DIR) if os.path.exists(UPLOAD_DIR) else [])
+        elif path == "/api/debug":
+            db_path = os.path.join(BASE_DIR, "data", "products.db")
+            db_size = os.path.getsize(db_path) if os.path.exists(db_path) else 0
+            upload_dir = os.path.join(BASE_DIR, "uploads")
+            upload_count = len([f for f in os.listdir(upload_dir) if f != ".gitkeep"]) if os.path.exists(upload_dir) else 0
+            conn = get_db()
+            prod_count = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
+            cat_count = conn.execute("SELECT COUNT(*) FROM categories").fetchone()[0]
+            order_count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+            conn.close()
+            sync_log_exists = os.path.exists(SYNC_LOG)
+            sync_log = ""
+            if sync_log_exists:
+                with open(SYNC_LOG, "r", encoding="utf-8") as f:
+                    sync_log = f.read()[-1500:]
+            send_json(self, {
+                "db_size": db_size,
+                "upload_count": upload_count,
+                "product_count": prod_count,
+                "category_count": cat_count,
+                "order_count": order_count,
+                "gh_token_set": bool(os.environ.get("GH_TOKEN", "").strip()),
+                "sync_log_exists": sync_log_exists,
+                "sync_log": sync_log,
+            })
         elif path.startswith("/static/"):
             self.serve(os.path.join(BASE_DIR, path.lstrip("/")))
         elif path.startswith("/uploads/"):
@@ -272,8 +323,12 @@ class H(BaseHTTPRequestHandler):
             pid = c.lastrowid
             row = conn.execute("SELECT * FROM products WHERE id=?", (pid,)).fetchone()
             conn.close()
-            auto_commit()
             send_json(self, dict(row) if row else {}, 201)
+        elif path == "/api/admin/sync":
+            if not require_auth(self):
+                return send_json(self, {"error": "unauthorized"}, 401)
+            result = do_commit(force=True)
+            send_json(self, result)
         elif path == "/api/upload":
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)
@@ -300,7 +355,6 @@ class H(BaseHTTPRequestHandler):
                     os.makedirs(UPLOAD_DIR, exist_ok=True)
                     with open(os.path.join(UPLOAD_DIR, sn), "wb") as f:
                         f.write(data.rstrip(b"\r\n"))
-                    auto_commit()
                     return send_json(self, {"filename": sn})
             send_json(self, {"error": "no image"}, 400)
         elif path == "/api/order/create":
@@ -326,7 +380,6 @@ class H(BaseHTTPRequestHandler):
             conn.commit()
             oid = c.lastrowid
             conn.close()
-            auto_commit()
             send_json(self, {"ok": True, "order_id": oid, "total": total, "product_name": product["name"]})
         elif path == "/api/order/query":
             b = parse_body(self)
@@ -383,7 +436,6 @@ class H(BaseHTTPRequestHandler):
                 conn.execute("INSERT OR REPLACE INTO settings VALUES (?,?)", (k, str(v)))
             conn.commit()
             conn.close()
-            auto_commit()
             send_json(self, {"ok": True})
         elif path == "/api/categories" and require_auth(self):
             b = parse_body(self)
@@ -416,7 +468,6 @@ class H(BaseHTTPRequestHandler):
             conn.execute("UPDATE orders SET status='completed' WHERE id=?", (int(oid),))
             conn.commit()
             conn.close()
-            auto_commit()
             send_json(self, {"ok": True})
         elif path == "/api/admin/order/confirm":
             if not require_auth(self):

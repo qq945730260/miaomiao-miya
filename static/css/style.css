@@ -29,7 +29,6 @@ a { color: inherit; text-decoration: none; }
 .cat-btn:hover { color: var(--pink-dark); border-bottom-color: var(--pink); }
 .cat-btn.active { color: var(--pink-dark); border-bottom-color: var(--pink-dark); }
 .hero { background: linear-gradient(135deg, var(--pink) 0%, #ffd6e0 100%); padding: 44px 24px; text-align: center; }
-.hero h1 { font-size: 2rem; color: var(--white); margin-bottom: 6px; }
 .hero #hero-announcement { font-size: 1.8rem; color: var(--white); font-weight: 800; margin-bottom: 4px; letter-spacing: 2px; }
 .hero p { color: rgba(255,255,255,0.92); font-size: 1rem; margin-top: 6px; }
 
@@ -169,7 +168,6 @@ td img { width: 55px; height: 42px; object-fit: cover; border-radius: 6px; }
   .logo { font-size: 1.15rem; }
   .nav-links a { margin-left: 10px; font-size: 0.82rem; }
   .hero { padding: 24px 14px 20px; }
-  .hero h1 { font-size: 1.3rem; }
   .hero #hero-announcement { font-size: 1.3rem; }
   .hero p { font-size: 0.95rem; }
   .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 10px 14px; }

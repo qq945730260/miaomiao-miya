@@ -13,7 +13,8 @@
   <nav class="nav-links" id="nav-auth" style="display:none;">
     <a href="/" target="_blank">查看网站</a>
     <a href="#" onclick="logout();return false;">退出登录</a>
-  </nav>
+    <button class="btn btn-sm" onclick="doSync()" id="sync-btn" style="margin-left:12px;background:#7BC89A;color:#fff;" title="手动同步数据到云端">\u21bb 同步数据</button>
+
 </header>
 
 <div id="login-section">
@@ -149,5 +150,19 @@
 function doLogin(){ login(document.getElementById("login-user").value, document.getElementById("login-pass").value); }
 document.getElementById("login-pass").addEventListener("keydown", function(e){ if(e.key==="Enter") doLogin(); });
 </script>
+
+function doSync(){
+  var btn=document.getElementById('sync-btn');
+  if(!btn)return;
+  btn.disabled=true;btn.textContent='同步中...';
+  fetch('/api/admin/sync',{method:'POST',headers:{"Content-Type":"application/json"}})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      btn.disabled=false;
+      if(d.ok){btn.textContent='\u2713 已同步';setTimeout(function(){btn.textContent='\u21bb 同步数据';},2000);toast(d.message||'同步成功');}
+      else{btn.textContent='\u21bb 同步数据';toast(d.error||'同步失败');}
+    })
+    .catch(function(){btn.disabled=false;btn.textContent='\u21bb 同步数据';toast('网络错误');});
+}
 </body>
 </html>
