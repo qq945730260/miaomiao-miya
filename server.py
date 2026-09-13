@@ -55,8 +55,9 @@ def init_db():
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL DEFAULT '')""")
     c.execute("CREATE TABLE IF NOT EXISTS admin (username TEXT PRIMARY KEY, password TEXT)")
-    for k, v in [("site_title","喵喵咪丫"),("site_tagline","遇见你的小可爱"),
-                  ("wechat_pay_qr",""),("alipay_qr",""),("wechat_qr","")]:
+    for k, v in [("site_title","喵喵咪丫"),("shop_description",""),
+                  ("wechat_pay_qr",""),("alipay_qr",""),("wechat_qr",""),
+                  ("shop_logo","")]:
         c.execute("INSERT OR IGNORE INTO settings VALUES (?,?)", (k, v))
     if c.execute("SELECT COUNT(*) FROM admin").fetchone()[0] == 0:
         c.execute("INSERT INTO admin VALUES (?,?)", (ADMIN_USER, ADMIN_PASS))
@@ -74,6 +75,7 @@ def init_db():
     except Exception:
         pass
     conn.close()
+    auto_commit()
 
 
 def send_json(h, data, status=200):
@@ -109,6 +111,20 @@ def parse_body(h):
     except Exception:
         return {}
 
+
+def auto_commit():
+    """Persist data/uploads to git so Render ephemeral FS doesn't lose them."""
+    try:
+        subprocess.run(['git', '-c', 'safe.directory=*', 'add', '-A', 'data/', 'uploads/'],
+            capture_output=True, timeout=10, cwd=BASE_DIR)
+        r = subprocess.run(['git', '-c', 'safe.directory=*', 'commit', '-q', '--allow-empty', '-m', 'auto-commit data'],
+            capture_output=True, timeout=10, cwd=BASE_DIR)
+        if b'nothing' not in r.stdout and b'nothing' not in r.stderr:
+            subprocess.run(['git', '-c', 'safe.directory=*', '-c', 'http.proxy=http://127.0.0.1:10808', '-c', 'https.proxy=http://127.0.0.1:10808',
+                'push', 'https://'+os.environ.get('GH_TOKEN','')+'@github.com/qq945730260/miaomiao-miya.git', 'main'],
+                capture_output=True, timeout=30, cwd=BASE_DIR)
+    except Exception:
+        pass
 
 def clean_expired(conn):
     cutoff = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time() - ORDER_RETENTION_DAYS * 86400))
@@ -253,6 +269,7 @@ class H(BaseHTTPRequestHandler):
             pid = c.lastrowid
             row = conn.execute("SELECT * FROM products WHERE id=?", (pid,)).fetchone()
             conn.close()
+            auto_commit()
             send_json(self, dict(row) if row else {}, 201)
         elif path == "/api/upload":
             if not require_auth(self):
@@ -274,12 +291,13 @@ class H(BaseHTTPRequestHandler):
                 if nm and fm and nm.group(1) == "image":
                     fn = os.path.basename(fm.group(1)).replace(" ", "_")
                     ext = os.path.splitext(fn)[1].lower() or ".jpg"
-                    if ext not in {".jpg",".jpeg",".png",".gif",".webp"}:
+                    if ext not in {".jpg",".jpeg",".png",".gif",".webp",".svg"}:
                         return send_json(self, {"error": "bad ext"}, 400)
                     sn = secrets.token_hex(8) + ext
                     os.makedirs(UPLOAD_DIR, exist_ok=True)
                     with open(os.path.join(UPLOAD_DIR, sn), "wb") as f:
                         f.write(data.rstrip(b"\r\n"))
+                    auto_commit()
                     return send_json(self, {"filename": sn})
             send_json(self, {"error": "no image"}, 400)
         elif path == "/api/order/create":
@@ -305,6 +323,7 @@ class H(BaseHTTPRequestHandler):
             conn.commit()
             oid = c.lastrowid
             conn.close()
+            auto_commit()
             send_json(self, {"ok": True, "order_id": oid, "total": total, "product_name": product["name"]})
         elif path == "/api/order/query":
             b = parse_body(self)
@@ -361,6 +380,7 @@ class H(BaseHTTPRequestHandler):
                 conn.execute("INSERT OR REPLACE INTO settings VALUES (?,?)", (k, str(v)))
             conn.commit()
             conn.close()
+            auto_commit()
             send_json(self, {"ok": True})
         elif path == "/api/categories" and require_auth(self):
             b = parse_body(self)
@@ -393,6 +413,7 @@ class H(BaseHTTPRequestHandler):
             conn.execute("UPDATE orders SET status='completed' WHERE id=?", (int(oid),))
             conn.commit()
             conn.close()
+            auto_commit()
             send_json(self, {"ok": True})
         elif path == "/api/admin/order/confirm":
             if not require_auth(self):

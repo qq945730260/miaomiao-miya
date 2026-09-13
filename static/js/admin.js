@@ -180,15 +180,27 @@ function saveCategories(){
 function saveSettings(){
   var body={
     site_title:document.getElementById("form-site_title").value,
-    site_tagline:document.getElementById("form-site_tagline").value,
+    shop_description:document.getElementById("form-shop_description").value,
     wechat_qr:document.getElementById("form-wechat_qr").value,
     wechat_pay_qr:document.getElementById("form-wechat_pay_qr").value,
-    alipay_qr:document.getElementById("form-alipay_qr").value
+    alipay_qr:document.getElementById("form-alipay_qr").value,
+    shop_logo:document.getElementById("form-shop_logo").value
   };
   fetch(API+"/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
     .then(function(r){return r.json();})
     .then(function(d){toast(d.ok?"设置已保存":"保存失败");})
     .catch(function(){toast("网络错误");});
+}
+
+function uploadShopLogo(e){
+  var file=e.target.files[0];if(!file)return;
+  var fd=new FormData();fd.append("image",file);
+  fetch(API+"/upload",{method:"POST",body:fd})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.filename){document.getElementById("form-shop_logo").value=d.filename;document.getElementById("shop-logo-preview").src="/uploads/"+d.filename;document.getElementById("shop-logo-preview").style.display="";}
+    })
+    .catch(function(){toast("上传失败");});
 }
 
 function uploadQRImage(e){

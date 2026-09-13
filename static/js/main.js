@@ -14,9 +14,15 @@ function loadSettings(){
       var logo=document.getElementById('site-logo');
       if(logo)logo.textContent=esc(s.site_title);
     }
-    if(s&&s.site_tagline){var st=document.getElementById('hero-subtitle');if(st)st.textContent=s.site_tagline;}
+    if(s&&s.shop_description){
+      var desc=document.getElementById('hero-subtitle');
+      if(desc)desc.textContent=esc(s.shop_description);
+    }
     var ht=document.getElementById('hero-title');
     if(ht)ht.textContent=s&&s.site_title?s.site_title:'喵喵咪丫';
+    var img=document.getElementById('shop-logo-img');
+    if(img&&s.shop_logo){img.src='/uploads/'+s.shop_logo;img.style.display='inline-block';}
+    else if(img){img.style.display='none';}
   }).catch(function(e){console.error(e);});
 }
 

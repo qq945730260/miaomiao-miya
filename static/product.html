@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0">
 <title id="page-title">加载中...</title>
 <link rel="stylesheet" href="/static/css/style.css">
+  <!-- v20260913d -->
 </head>
 <body>
 
@@ -66,10 +67,9 @@
         <img id="pay-qrcode-img" src="" alt="收款码" style="max-width:220px;border-radius:12px;">
         <p id="pay-qrcode-label" style="margin-top:8px;color:var(--brown-light);font-size:0.9rem;"></p>
       </div>
-      <div class="btn-row" style="justify-content:center;margin-top:16px;gap:10px;">
-        <button class="btn btn-pink" onclick="confirmPayment()" style="white-space:nowrap;padding:9px 16px;">
-          支付后点我<br><span style="font-size:0.72rem;opacity:0.85;">可截图发客服确认订单</span>
-        </button>
+      <p style="text-align:center;color:var(--brown-light);font-size:0.82rem;margin-top:12px;">支付完成后点击下方按钮确认订单</p>
+      <div class="btn-row" style="justify-content:center;margin-top:12px;gap:10px;">
+        <button class="btn btn-pink" onclick="confirmPayment()">我已支付</button>
         <button class="btn btn-secondary btn-sm" onclick="closePayModal()">取消</button>
       </div>
     </div>
@@ -148,9 +148,15 @@ function confirmPayment(){
       btn.disabled=false;btn.textContent='我已支付';
       if(d.ok){
         document.getElementById('pay-modal').classList.remove('open');
-        toast("订单已确认，7天内可通过邮箱+密码查询订单");
+        showOrderSuccess();
       }else{toast(d.error||"确认失败");}
     }).catch(function(){btn.disabled=false;btn.textContent='我已支付';toast("网络错误");});
+}
+function showOrderSuccess(){
+  var overlay=document.createElement('div');overlay.className='modal-overlay';overlay.id='success-overlay';
+  overlay.innerHTML='<div class="modal" style="padding:28px;width:320px;text-align:center;"><h3 style="color:#7BC89A;margin-bottom:12px;">✓ 订单已确认</h3><p style="color:var(--brown);margin-bottom:6px;font-size:0.95rem;">您的订单已提交成功</p><p style="color:var(--pink-dark);font-weight:700;font-size:1.1rem;margin-bottom:16px;">订单查询有效期 1 天</p><p style="color:#aaa;font-size:0.78rem;margin-bottom:18px;">请保存好邮箱和查询密码，用于后续查询</p><button class="btn btn-pink" onclick="document.getElementById(&apos;success-overlay&apos;).remove()">关闭</button></div>';
+  document.body.appendChild(overlay);
+  overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};
 }
 loadDetail();
 </script>
