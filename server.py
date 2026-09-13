@@ -28,6 +28,10 @@ def init_db():
     """Ensure schema exists; data is loaded from git on startup."""
     conn = get_db()
     c = conn.cursor()
+    # Restore initial data if DB is empty
+    if not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) < 1000:
+        restore_initial_data(conn)
+    
     c.execute("""CREATE TABLE IF NOT EXISTS products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -176,14 +180,59 @@ def auto_commit():
 def pull_data_from_git():
     """Pull latest data/uploads from git on startup to restore persisted data."""
     try:
+        # Check if we're on the right branch
+        r = subprocess.run(['git', '-c', 'safe.directory=*', 'rev-parse', '--abbrev-ref', 'HEAD'],
+            capture_output=True, timeout=10, cwd=BASE_DIR)
+        current_branch = r.stdout.decode().strip()
+        
+        # If not on v5, try to checkout v5
+        if current_branch != 'v5':
+            r2 = subprocess.run(['git', '-c', 'safe.directory=*', 'checkout', 'v5'],
+                capture_output=True, timeout=10, cwd=BASE_DIR)
+            if r2.returncode != 0:
+                log_sync('WARN: could not checkout v5: ' + r2.stderr.decode('utf-8', errors='replace')[:100])
+                return
+        
+        # Pull latest changes
         r = subprocess.run(['git', '-c', 'safe.directory=*', 'pull', 'origin', 'v5'],
             capture_output=True, timeout=15, cwd=BASE_DIR)
         if r.returncode == 0:
             log_sync('OK: pulled on startup')
         else:
-            log_sync('SKIP: pull not needed or failed')
+            log_sync('SKIP: pull result=' + str(r.returncode) + ' stderr=' + r.stderr.decode('utf-8', errors='replace')[:200])
     except Exception as e:
         log_sync('SKIP: pull exception: ' + str(e))
+
+
+def restore_initial_data(conn):
+    """Restore initial data from git blob if database is empty."""
+    try:
+        # Check if DB has data
+        prod_count = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
+        if prod_count > 0:
+            log_sync('OK: DB already has data, skip restore')
+            return True
+        
+        # Try to restore from git
+        r = subprocess.run(['git', '-c', 'safe.directory=*', 'show', 'HEAD:data/products.db'],
+            capture_output=True, timeout=10, cwd=BASE_DIR)
+        if r.returncode == 0 and len(r.stdout) > 0:
+            db_path = os.path.join(DATA_DIR, "products.db")
+            tmp_path = db_path + ".tmp"
+            with open(tmp_path, "wb") as f:
+                f.write(r.stdout)
+            # Replace the existing DB
+            if os.path.exists(db_path):
+                os.remove(db_path)
+            os.rename(tmp_path, db_path)
+            log_sync('OK: restored initial data from git')
+            return True
+        else:
+            log_sync('WARN: no data in git, using empty DB')
+            return False
+    except Exception as e:
+        log_sync('WARN: restore exception: ' + str(e))
+        return False
 
 
 def clean_expired(conn):
