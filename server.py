@@ -114,14 +114,17 @@ def parse_body(h):
 
 def auto_commit():
     """Persist data/uploads to git so Render ephemeral FS doesn't lose them."""
+    token = os.environ.get('GH_TOKEN', '').strip()
+    if not token:
+        return
     try:
         subprocess.run(['git', '-c', 'safe.directory=*', 'add', '-A', 'data/', 'uploads/'],
             capture_output=True, timeout=10, cwd=BASE_DIR)
         r = subprocess.run(['git', '-c', 'safe.directory=*', 'commit', '-q', '--allow-empty', '-m', 'auto-commit data'],
             capture_output=True, timeout=10, cwd=BASE_DIR)
         if b'nothing' not in r.stdout and b'nothing' not in r.stderr:
-            subprocess.run(['git', '-c', 'safe.directory=*', '-c', 'http.proxy=http://127.0.0.1:10808', '-c', 'https.proxy=http://127.0.0.1:10808',
-                'push', 'https://'+os.environ.get('GH_TOKEN','')+'@github.com/qq945730260/miaomiao-miya.git', 'main'],
+            subprocess.run(['git', '-c', 'safe.directory=*',
+                'push', 'https://'+token+'@github.com/qq945730260/miaomiao-miya.git', 'main'],
                 capture_output=True, timeout=30, cwd=BASE_DIR)
     except Exception:
         pass
