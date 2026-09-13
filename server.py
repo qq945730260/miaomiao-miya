@@ -140,7 +140,7 @@ def do_commit(force=False):
             return {"ok": True, "message": "no_changes"}
         if changed or force:
             r3 = subprocess.run(['git', '-c', 'safe.directory=*',
-                'push', 'https://'+token+'@github.com/qq945730260/miaomiao-miya.git', 'main'],
+                'push', 'https://'+token+'@github.com/qq945730260/miaomiao-miya.git', 'v5'],
                 capture_output=True, timeout=30, cwd=BASE_DIR)
             if r3.returncode == 0:
                 log_sync('OK: pushed')
@@ -168,7 +168,7 @@ def auto_commit():
             log_sync('SKIP: no changes')
             return
         r3 = subprocess.run(['git', '-c', 'safe.directory=*',
-            'push', 'https://'+token+'@github.com/qq945730260/miaomiao-miya.git', 'main'],
+            'push', 'https://'+token+'@github.com/qq945730260/miaomiao-miya.git', 'v5'],
             capture_output=True, timeout=30, cwd=BASE_DIR)
         if r3.returncode == 0:
             log_sync('OK: pushed to main')
