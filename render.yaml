@@ -1,5 +1,6 @@
 services:
   - type: web
+    branch: main
     name: miaomiao-miya
     env: python
     buildCommand: pip install -r requirements.txt
