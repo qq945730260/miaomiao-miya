@@ -12,6 +12,19 @@
       "description": "精品金渐层",
       "wechat": "",
       "qq": ""
+    },
+    {
+      "id": 2,
+      "name": "银渐层B",
+      "title": "银渐层幼猫B窝",
+      "category": "萌宠",
+      "price": 3200.0,
+      "stock": 3,
+      "image": "placeholder.jpg",
+      "detail_image": "",
+      "description": "银渐层小猫",
+      "wechat": "",
+      "qq": ""
     }
   ],
   "categories": [

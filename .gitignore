@@ -3,3 +3,5 @@ __pycache__/
 .DS_Store
 fix_*.py
 build_*.py
+data/session_*
+data/sync.log
