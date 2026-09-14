@@ -26,12 +26,21 @@ def get_db():
 
 def init_db():
     """Ensure schema exists; data is loaded from git on startup."""
+    # First check if we need to restore from git
+    db_path = os.path.join(DATA_DIR, "products.db")
+    if os.path.exists(db_path):
+        # Check if DB has any data
+        try:
+            temp_conn = sqlite3.connect(db_path)
+            prod_count = temp_conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
+            temp_conn.close()
+            if prod_count > 0:
+                log_sync('OK: DB already has data')
+        except Exception:
+            pass  # Table might not exist yet, that's OK
+    
     conn = get_db()
     c = conn.cursor()
-    # Restore initial data if DB is empty
-    if not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) < 1000:
-        restore_initial_data(conn)
-    
     c.execute("""CREATE TABLE IF NOT EXISTS products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -204,35 +213,53 @@ def pull_data_from_git():
         log_sync('SKIP: pull exception: ' + str(e))
 
 
-def restore_initial_data(conn):
+def restore_initial_data():
     """Restore initial data from git blob if database is empty."""
+    db_path = os.path.join(DATA_DIR, "products.db")
     try:
-        # Check if DB has data
-        prod_count = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
-        if prod_count > 0:
-            log_sync('OK: DB already has data, skip restore')
-            return True
+        # Check if DB exists and has data
+        if os.path.exists(db_path) and os.path.getsize(db_path) > 1000:
+            try:
+                temp_conn = sqlite3.connect(db_path)
+                prod_count = temp_conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
+                temp_conn.close()
+                if prod_count > 0:
+                    log_sync('OK: DB already has data, skip restore')
+                    return True
+            except Exception:
+                pass  # Table might not exist, continue to restore
         
         # Try to restore from git
         r = subprocess.run(['git', '-c', 'safe.directory=*', 'show', 'HEAD:data/products.db'],
             capture_output=True, timeout=10, cwd=BASE_DIR)
         if r.returncode == 0 and len(r.stdout) > 0:
-            db_path = os.path.join(DATA_DIR, "products.db")
             tmp_path = db_path + ".tmp"
             with open(tmp_path, "wb") as f:
                 f.write(r.stdout)
-            # Replace the existing DB
-            if os.path.exists(db_path):
-                os.remove(db_path)
-            os.rename(tmp_path, db_path)
-            log_sync('OK: restored initial data from git')
-            return True
+            # Wait for any locks to release
+            import time
+            for i in range(5):
+                try:
+                    if os.path.exists(db_path):
+                        os.remove(db_path)
+                    os.rename(tmp_path, db_path)
+                    log_sync('OK: restored initial data from git')
+                    return True
+                except PermissionError:
+                    time.sleep(0.5)
+            # If we still can't rename, just use the temp file
+            if os.path.exists(tmp_path):
+                os.rename(tmp_path, db_path)
+                log_sync('OK: restored initial data from git (after wait)')
+                return True
         else:
-            log_sync('WARN: no data in git, using empty DB')
+            log_sync('WARN: no data in git')
             return False
     except Exception as e:
         log_sync('WARN: restore exception: ' + str(e))
         return False
+
+
 
 
 def clean_expired(conn):
