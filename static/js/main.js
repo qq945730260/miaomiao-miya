@@ -3,6 +3,8 @@ var allProducts=[];
 var siteSettings={};
 var categories=[];
 var activeCat='all';
+var soldMap={};
+var allOrders=[];
 
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
@@ -68,6 +70,20 @@ function filterByCat(cat){
 function loadProducts(){
   fetch(API+'/products').then(function(r){return r.json();}).then(function(prods){
     allProducts=prods||[];
+    loadOrders();
+  }).catch(function(e){console.error(e);});
+}
+
+function loadOrders(){
+  fetch(API+'/orders').then(function(r){return r.json();}).then(function(orders){
+    allOrders=orders||[];
+    soldMap={};
+    for(var i=0;i<allOrders.length;i++){
+      if(allOrders[i].status==='completed'){
+        var pid=allOrders[i].product_id;
+        soldMap[pid]=(soldMap[pid]||0)+allOrders[i].qty;
+      }
+    }
     renderPage();
   }).catch(function(e){console.error(e);});
 }
@@ -95,7 +111,8 @@ function buildCard(p){
   html+='<div class="card-cat">'+esc(p.category)+'</div>';
   html+='<div class="card-name">'+esc(p.title||p.name)+'</div>';
   html+='<div class="card-price">&#165;'+p.price+'</div>';
-  html+='<div class="card-stock'+stockClass+'">库存 '+p.stock+' 件</div>';
+  var sold=soldMap[p.id]||0;
+  html+='<div class="card-stock'+stockClass+'">库存 '+p.stock+' 件  已售 '+sold+' 件</div>';
   html+='</div></div>';
   return html;
 }
