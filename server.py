@@ -381,12 +381,7 @@ class H(BaseHTTPRequestHandler):
                 return send_json(self, {"error": "missing fields"}, 400)
             store = clean_expired(store)
             orders = store.get("orders", [])
-            import re as _re
-            matches = [o for o in orders if o.get("email") == email and o.get("password") == password]
-            print(f"QUERY: email={email} pwd={password!r} total_orders={len(orders)} matches={len(matches)}", flush=True)
-            for mo in matches:
-                print(f"  MATCH: num={mo.get('order_number')} email={mo.get('email')} pwd={mo.get('password')!r} status={mo.get('status')}", flush=True)
-            order = matches[0] if matches else None
+            order = next((o for o in orders if o.get("email") == email and o.get("password") == password), None)
             if order:
                 # Remove status from response
                 result = {k: v for k, v in order.items() if k != "status"}
