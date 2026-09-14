@@ -4,7 +4,6 @@ var siteSettings={};
 var categories=[];
 var activeCat='all';
 var soldMap={};
-var allOrders=[];
 
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
@@ -75,15 +74,8 @@ function loadProducts(){
 }
 
 function loadOrders(){
-  fetch(API+'/orders').then(function(r){return r.json();}).then(function(orders){
-    allOrders=orders||[];
-    soldMap={};
-    for(var i=0;i<allOrders.length;i++){
-      if(allOrders[i].status==='completed'){
-        var pid=allOrders[i].product_id;
-        soldMap[pid]=(soldMap[pid]||0)+allOrders[i].qty;
-      }
-    }
+  fetch(API+'/sold').then(function(r){return r.json();}).then(function(s){
+    soldMap=s||{};
     renderPage();
   }).catch(function(e){console.error(e);});
 }

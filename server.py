@@ -204,6 +204,15 @@ class H(BaseHTTPRequestHandler):
                              "product_image": prod.get("image", "")})
             result.sort(key=lambda x: x.get("created_at", ""), reverse=True)
             send_json(self, result)
+        elif path == "/api/sold":
+            # Public endpoint: return sold quantity per product (only completed orders)
+            orders = store.get("orders", [])
+            sold = {}
+            for o in orders:
+                if o.get("status") == "completed":
+                    pid = o.get("product_id")
+                    sold[pid] = sold.get(pid, 0) + o.get("qty", 1)
+            send_json(self, sold)
         elif path == "/uploads":
             files = os.listdir(UPLOAD_DIR) if os.path.exists(UPLOAD_DIR) else []
             send_json(self, [f for f in files if not f.startswith(".")])
@@ -372,7 +381,7 @@ class H(BaseHTTPRequestHandler):
                 return send_json(self, {"error": "missing fields"}, 400)
             store = clean_expired(store)
             orders = store.get("orders", [])
-            order = next((o for o in orders if o.get("email") == email and o.get("password") == password and o.get("status") == "pending"), None)
+            order = next((o for o in orders if o.get("email") == email and o.get("password") == password), None)
             if order:
                 # Remove status from response
                 result = {k: v for k, v in order.items() if k != "status"}
