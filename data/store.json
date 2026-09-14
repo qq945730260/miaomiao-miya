@@ -1,0 +1,35 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "name": "金渐层A",
+      "title": "金渐层幼猫A窝",
+      "category": "萌宠",
+      "price": 2800.0,
+      "stock": 5,
+      "image": "placeholder.jpg",
+      "detail_image": "",
+      "description": "精品金渐层",
+      "wechat": "",
+      "qq": ""
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "金渐层猫仔",
+      "sort_order": 0
+    },
+    {
+      "id": 2,
+      "name": "银渐层猫仔",
+      "sort_order": 1
+    }
+  ],
+  "orders": [],
+  "settings": {},
+  "admin": {
+    "username": "xuxu",
+    "password": "5361172"
+  }
+}

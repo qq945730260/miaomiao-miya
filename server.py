@@ -1,14 +1,13 @@
-"""Pet Shop Server V4"""
-import json, os, secrets, sqlite3, time, re, subprocess
+"""Pet Shop Server V6 - JSON storage for persistence"""
+import json, os, secrets, time, re, subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
-import subprocess
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
-DB_PATH = os.path.join(DATA_DIR, "products.db")
+STORE_FILE = os.path.join(DATA_DIR, "store.json")
 ADMIN_USER = "xuxu"
 ADMIN_PASS = "5361172"
 SESSION_TTL = 86400
@@ -16,74 +15,96 @@ MAX_PRODUCTS = 30
 BLOCKED_DOMAIN = "miaomiao.au0817.dpdns.org"
 ORDER_RETENTION_DAYS = 7
 
-
-def get_db():
-    os.makedirs(DATA_DIR, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def init_db():
-    """Ensure schema exists; data is loaded from git on startup."""
-    # First check if we need to restore from git
-    db_path = os.path.join(DATA_DIR, "products.db")
-    if os.path.exists(db_path):
-        # Check if DB has any data
+def load_store():
+    """Load store data from JSON file."""
+    if os.path.exists(STORE_FILE):
         try:
-            temp_conn = sqlite3.connect(db_path)
-            prod_count = temp_conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
-            temp_conn.close()
-            if prod_count > 0:
-                log_sync('OK: DB already has data')
-        except Exception:
-            pass  # Table might not exist yet, that's OK
-    
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("""CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        title TEXT DEFAULT '',
-        category TEXT NOT NULL,
-        price REAL NOT NULL,
-        stock INTEGER NOT NULL DEFAULT 0,
-        image TEXT DEFAULT 'placeholder.jpg',
-        detail_image TEXT DEFAULT '',
-        description TEXT DEFAULT '',
-        wechat TEXT DEFAULT '',
-        qq TEXT DEFAULT '')""")
-    c.execute("""CREATE TABLE IF NOT EXISTS categories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        sort_order INTEGER NOT NULL DEFAULT 0)""")
-    c.execute("""CREATE TABLE IF NOT EXISTS orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT NOT NULL,
-        password TEXT NOT NULL,
-        product_id INTEGER NOT NULL,
-        qty INTEGER NOT NULL,
-        total REAL NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending',
-        created_at TEXT NOT NULL)""")
-    c.execute("""CREATE TABLE IF NOT EXISTS settings (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL DEFAULT '')""")
-    c.execute("CREATE TABLE IF NOT EXISTS admin (username TEXT PRIMARY KEY, password TEXT)")
-    # Default data is committed to git; only add missing columns for schema migrations
-    try:
-        conn.execute("ALTER TABLE products ADD COLUMN detail_image TEXT DEFAULT ''")
-        conn.commit()
-    except Exception:
-        pass
-    try:
-        conn.execute("ALTER TABLE products ADD COLUMN title TEXT DEFAULT ''")
-        conn.commit()
-    except Exception:
-        pass
-    conn.close()
-    auto_commit()
+            with open(STORE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print("ERROR loading store:", e, flush=True)
+    # Return default empty store
+    return {
+        "products": [],
+        "categories": [],
+        "orders": [],
+        "settings": {
+            "site_title": "喵喵咪丫",
+            "shop_description": "",
+            "wechat_pay_qr": "",
+            "alipay_qr": "",
+            "wechat_qr": "",
+            "shop_logo": ""
+        },
+        "admin": {"username": ADMIN_USER, "password": ADMIN_PASS}
+    }
 
+def save_store(store):
+    """Save store data to JSON file and commit to git."""
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(STORE_FILE, "w", encoding="utf-8") as f:
+            json.dump(store, f, ensure_ascii=False, indent=2)
+        auto_commit()
+    except Exception as e:
+        print("ERROR saving store:", e, flush=True)
+
+def get_next_id(items):
+    """Get next ID for a list of items."""
+    if not items:
+        return 1
+    return max(item.get("id", 0) for item in items) + 1
+
+SYNC_LOG = os.path.join(BASE_DIR, "data", "sync.log")
+
+def log_sync(msg):
+    try:
+        os.makedirs(os.path.dirname(SYNC_LOG), exist_ok=True)
+        with open(SYNC_LOG, "a", encoding="utf-8") as f:
+            f.write(time.strftime("%Y-%m-%d %H:%M:%S") + " " + msg + "\n")
+    except Exception:
+        pass
+
+def auto_commit():
+    """Commit and push data to git."""
+    token = os.environ.get("GH_TOKEN", "").strip()
+    if not token:
+        log_sync("SKIP: GH_TOKEN not set")
+        return
+    try:
+        r = subprocess.run(["git", "-c", "safe.directory=*", "add", "-A", "data/", "uploads/"],
+            capture_output=True, timeout=10, cwd=BASE_DIR)
+        r2 = subprocess.run(["git", "-c", "safe.directory=*", "commit", "-q", "--allow-empty", "-m", "auto-commit data"],
+            capture_output=True, timeout=10, cwd=BASE_DIR)
+        if b"nothing" not in r2.stdout and b"nothing" not in r2.stderr:
+            r3 = subprocess.run(["git", "-c", "safe.directory=*",
+                "push", "https://"+token+"@github.com/qq945730260/miaomiao-miya.git", "v5"],
+                capture_output=True, timeout=30, cwd=BASE_DIR)
+            if r3.returncode == 0:
+                log_sync("OK: pushed to v5")
+            else:
+                err = r3.stderr.decode("utf-8", errors="replace")[:300]
+                log_sync("FAIL: " + err)
+    except Exception as e:
+        log_sync("EXC: " + str(e))
+
+def pull_data_from_git():
+    """Pull latest data from git on startup."""
+    try:
+        r = subprocess.run(["git", "-c", "safe.directory=*", "pull", "origin", "v5"],
+            capture_output=True, timeout=15, cwd=BASE_DIR)
+        if r.returncode == 0:
+            log_sync("OK: pulled on startup")
+        else:
+            log_sync("SKIP: pull result=" + str(r.returncode))
+    except Exception as e:
+        log_sync("SKIP: pull exception: " + str(e))
+
+def clean_expired(store):
+    """Remove expired orders."""
+    cutoff = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time() - ORDER_RETENTION_DAYS * 86400))
+    store["orders"] = [o for o in store.get("orders", []) if o.get("created_at", "") >= cutoff]
+    return store
 
 def send_json(h, data, status=200):
     body = json.dumps(data, ensure_ascii=False).encode("utf-8")
@@ -92,7 +113,6 @@ def send_json(h, data, status=200):
     h.send_header("Content-Length", str(len(body)))
     h.end_headers()
     h.wfile.write(body)
-
 
 def require_auth(h):
     for part in h.headers.get("Cookie", "").split(";"):
@@ -108,7 +128,6 @@ def require_auth(h):
                     pass
     return False
 
-
 def parse_body(h):
     n = int(h.headers.get("Content-Length", 0))
     if n == 0:
@@ -118,156 +137,6 @@ def parse_body(h):
     except Exception:
         return {}
 
-
-SYNC_LOG = os.path.join(BASE_DIR, "data", "sync.log")
-
-def log_sync(msg):
-    try:
-        os.makedirs(os.path.dirname(SYNC_LOG), exist_ok=True)
-        with open(SYNC_LOG, "a", encoding="utf-8") as f:
-            f.write(time.strftime("%Y-%m-%d %H:%M:%S") + " " + msg + "\n")
-    except Exception:
-        pass
-
-def do_commit(force=False):
-    """Commit and push data/uploads to git."""
-    token = os.environ.get('GH_TOKEN', '').strip()
-    if not token:
-        log_sync('SKIP: GH_TOKEN not set')
-        return {"ok": False, "error": "GH_TOKEN未配置"}
-    try:
-        r = subprocess.run(['git', '-c', 'safe.directory=*', 'add', '-A', 'data/', 'uploads/'],
-            capture_output=True, timeout=10, cwd=BASE_DIR)
-        r2 = subprocess.run(['git', '-c', 'safe.directory=*', 'commit', '-q', '--allow-empty', '-m', 'auto-commit data'],
-            capture_output=True, timeout=10, cwd=BASE_DIR)
-        changed = b'nothing' not in r2.stdout and b'nothing' not in r2.stderr
-        if not changed and not force:
-            log_sync('SKIP: no changes')
-            return {"ok": True, "message": "no_changes"}
-        if changed or force:
-            r3 = subprocess.run(['git', '-c', 'safe.directory=*',
-                'push', 'https://'+token+'@github.com/qq945730260/miaomiao-miya.git', 'v5'],
-                capture_output=True, timeout=30, cwd=BASE_DIR)
-            if r3.returncode == 0:
-                log_sync('OK: pushed')
-                return {"ok": True, "message": "已同步"}
-            else:
-                err = r3.stderr.decode("utf-8", errors="replace")[:300]
-                log_sync('FAIL: ' + err)
-                return {"ok": False, "error": err}
-    except Exception as e:
-        log_sync('EXC: ' + str(e))
-        return {"ok": False, "error": str(e)}
-
-def auto_commit():
-    """Commit and push data/uploads to main branch."""
-    token = os.environ.get('GH_TOKEN', '').strip()
-    if not token:
-        log_sync('SKIP: GH_TOKEN not set')
-        return
-    try:
-        r = subprocess.run(['git', '-c', 'safe.directory=*', 'add', '-A', 'data/', 'uploads/'],
-            capture_output=True, timeout=10, cwd=BASE_DIR)
-        r2 = subprocess.run(['git', '-c', 'safe.directory=*', 'commit', '-q', '--allow-empty', '-m', 'auto-commit data'],
-            capture_output=True, timeout=10, cwd=BASE_DIR)
-        if b'nothing' in r2.stdout or b'nothing' in r2.stderr:
-            log_sync('SKIP: no changes')
-            return
-        r3 = subprocess.run(['git', '-c', 'safe.directory=*',
-            'push', 'https://'+token+'@github.com/qq945730260/miaomiao-miya.git', 'v5'],
-            capture_output=True, timeout=30, cwd=BASE_DIR)
-        if r3.returncode == 0:
-            log_sync('OK: pushed to main')
-        else:
-            err = r3.stderr.decode("utf-8", errors="replace")[:300]
-            log_sync('FAIL: ' + err)
-            print("AUTO-COMMIT FAILED:", err, flush=True)
-    except Exception as e:
-        log_sync('EXC: ' + str(e))
-        print("AUTO-COMMIT EXCEPTION:", str(e), flush=True)
-
-def pull_data_from_git():
-    """Pull latest data/uploads from git on startup to restore persisted data."""
-    try:
-        # Check if we're on the right branch
-        r = subprocess.run(['git', '-c', 'safe.directory=*', 'rev-parse', '--abbrev-ref', 'HEAD'],
-            capture_output=True, timeout=10, cwd=BASE_DIR)
-        current_branch = r.stdout.decode().strip()
-        
-        # If not on v5, try to checkout v5
-        if current_branch != 'v5':
-            r2 = subprocess.run(['git', '-c', 'safe.directory=*', 'checkout', 'v5'],
-                capture_output=True, timeout=10, cwd=BASE_DIR)
-            if r2.returncode != 0:
-                log_sync('WARN: could not checkout v5: ' + r2.stderr.decode('utf-8', errors='replace')[:100])
-                return
-        
-        # Pull latest changes
-        r = subprocess.run(['git', '-c', 'safe.directory=*', 'pull', 'origin', 'v5'],
-            capture_output=True, timeout=15, cwd=BASE_DIR)
-        if r.returncode == 0:
-            log_sync('OK: pulled on startup')
-        else:
-            log_sync('SKIP: pull result=' + str(r.returncode) + ' stderr=' + r.stderr.decode('utf-8', errors='replace')[:200])
-    except Exception as e:
-        log_sync('SKIP: pull exception: ' + str(e))
-
-
-def restore_initial_data():
-    """Restore initial data from git blob if database is empty."""
-    db_path = os.path.join(DATA_DIR, "products.db")
-    try:
-        # Check if DB exists and has data
-        if os.path.exists(db_path) and os.path.getsize(db_path) > 1000:
-            try:
-                temp_conn = sqlite3.connect(db_path)
-                prod_count = temp_conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
-                temp_conn.close()
-                if prod_count > 0:
-                    log_sync('OK: DB already has data, skip restore')
-                    return True
-            except Exception:
-                pass  # Table might not exist, continue to restore
-        
-        # Try to restore from git
-        r = subprocess.run(['git', '-c', 'safe.directory=*', 'show', 'HEAD:data/products.db'],
-            capture_output=True, timeout=10, cwd=BASE_DIR)
-        if r.returncode == 0 and len(r.stdout) > 0:
-            tmp_path = db_path + ".tmp"
-            with open(tmp_path, "wb") as f:
-                f.write(r.stdout)
-            # Wait for any locks to release
-            import time
-            for i in range(5):
-                try:
-                    if os.path.exists(db_path):
-                        os.remove(db_path)
-                    os.rename(tmp_path, db_path)
-                    log_sync('OK: restored initial data from git')
-                    return True
-                except PermissionError:
-                    time.sleep(0.5)
-            # If we still can't rename, just use the temp file
-            if os.path.exists(tmp_path):
-                os.rename(tmp_path, db_path)
-                log_sync('OK: restored initial data from git (after wait)')
-                return True
-        else:
-            log_sync('WARN: no data in git')
-            return False
-    except Exception as e:
-        log_sync('WARN: restore exception: ' + str(e))
-        return False
-
-
-
-
-def clean_expired(conn):
-    cutoff = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time() - ORDER_RETENTION_DAYS * 86400))
-    conn.execute("DELETE FROM orders WHERE created_at < ?", (cutoff,))
-    conn.commit()
-
-
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -275,6 +144,8 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         p = urlparse(self.path)
         path = p.path.rstrip("/") or "/"
+        store = load_store()
+        
         if path in ("/", "/index"):
             self.serve(os.path.join(STATIC_DIR, "index.html"), "text/html; charset=utf-8")
         elif path == "/product":
@@ -286,57 +157,42 @@ class H(BaseHTTPRequestHandler):
             self.serve(os.path.join(STATIC_DIR, "admin.html"), "text/html; charset=utf-8")
         elif path == "/api/products":
             qs = parse_qs(p.query)
-            conn = get_db()
             if "id" in qs:
-                row = conn.execute("SELECT * FROM products WHERE id=?", (int(qs["id"][0]),)).fetchone()
-                conn.close()
-                send_json(self, dict(row) if row else {}, 404 if not row else 200)
+                prod = next((pr for pr in store.get("products", []) if pr["id"] == int(qs["id"][0])), None)
+                send_json(self, prod if prod else {}, 404 if not prod else 200)
             else:
-                rows = conn.execute(
-                    "SELECT * FROM products ORDER BY CASE WHEN category IN ('金渐层幼猫','金渐层大猫','银渐层幼猫','银渐层大猫') THEN 0 ELSE 1 END, id ASC").fetchall()
-                conn.close()
-                send_json(self, [dict(r) for r in rows])
+                send_json(self, store.get("products", []))
         elif path == "/api/settings":
-            conn = get_db()
-            rows = conn.execute("SELECT key, value FROM settings").fetchall()
-            conn.close()
-            send_json(self, {r[0]: r[1] for r in rows})
+            send_json(self, store.get("settings", {}))
         elif path == "/api/admin/check":
             send_json(self, {"auth": require_auth(self)})
         elif path == "/api/admin/payment_qrcodes":
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)
-            conn = get_db()
-            rows = conn.execute("SELECT key, value FROM settings WHERE key IN ('wechat_pay_qr','alipay_qr')").fetchall()
-            conn.close()
-            send_json(self, {r[0]: r[1] for r in rows})
+            settings = store.get("settings", {})
+            send_json(self, {"wechat_pay_qr": settings.get("wechat_pay_qr", ""),
+                           "alipay_qr": settings.get("alipay_qr", "")})
         elif path == "/api/categories":
-            conn = get_db()
-            rows = conn.execute("SELECT id, name, sort_order FROM categories ORDER BY sort_order ASC").fetchall()
-            conn.close()
-            send_json(self, [{"id": r[0], "name": r[1], "sort_order": r[2]} for r in rows])
+            send_json(self, store.get("categories", []))
         elif path == "/api/orders":
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)
-            conn = get_db()
-            clean_expired(conn)
-            rows = conn.execute(
-                "SELECT o.*, p.name as product_name, p.title as product_title, p.image as product_image "
-                "FROM orders o LEFT JOIN products p ON o.product_id = p.id ORDER BY o.created_at DESC").fetchall()
-            conn.close()
-            send_json(self, [dict(r) for r in rows])
+            store = clean_expired(store)
+            orders = store.get("orders", [])
+            result = []
+            for o in orders:
+                prod = next((p for p in store.get("products", []) if p["id"] == o["product_id"]), {})
+                result.append({**o, "product_name": prod.get("name", ""),
+                             "product_title": prod.get("title", ""),
+                             "product_image": prod.get("image", "")})
+            result.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+            send_json(self, result)
         elif path == "/uploads":
-            send_json(self, os.listdir(UPLOAD_DIR) if os.path.exists(UPLOAD_DIR) else [])
+            files = os.listdir(UPLOAD_DIR) if os.path.exists(UPLOAD_DIR) else []
+            send_json(self, [f for f in files if not f.startswith(".")])
         elif path == "/api/debug":
-            db_path = os.path.join(BASE_DIR, "data", "products.db")
-            db_size = os.path.getsize(db_path) if os.path.exists(db_path) else 0
-            upload_dir = os.path.join(BASE_DIR, "uploads")
-            upload_count = len([f for f in os.listdir(upload_dir) if f != ".gitkeep"]) if os.path.exists(upload_dir) else 0
-            conn = get_db()
-            prod_count = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
-            cat_count = conn.execute("SELECT COUNT(*) FROM categories").fetchone()[0]
-            order_count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
-            conn.close()
+            db_size = os.path.getsize(STORE_FILE) if os.path.exists(STORE_FILE) else 0
+            upload_count = len([f for f in os.listdir(UPLOAD_DIR) if not f.startswith(".")]) if os.path.exists(UPLOAD_DIR) else 0
             sync_log_exists = os.path.exists(SYNC_LOG)
             sync_log = ""
             if sync_log_exists:
@@ -345,9 +201,9 @@ class H(BaseHTTPRequestHandler):
             send_json(self, {
                 "db_size": db_size,
                 "upload_count": upload_count,
-                "product_count": prod_count,
-                "category_count": cat_count,
-                "order_count": order_count,
+                "product_count": len(store.get("products", [])),
+                "category_count": len(store.get("categories", [])),
+                "order_count": len(store.get("orders", [])),
                 "gh_token_set": bool(os.environ.get("GH_TOKEN", "").strip()),
                 "sync_log_exists": sync_log_exists,
                 "sync_log": sync_log,
@@ -362,9 +218,12 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         p = urlparse(self.path)
         path = p.path.rstrip("/") or "/"
+        store = load_store()
+        
         if path == "/api/admin/login":
             b = parse_body(self)
-            if b.get("username") == ADMIN_USER and b.get("password") == ADMIN_PASS:
+            admin = store.get("admin", {"username": ADMIN_USER, "password": ADMIN_PASS})
+            if b.get("username") == admin["username"] and b.get("password") == admin["password"]:
                 tok = secrets.token_hex(16)
                 fp = os.path.join(DATA_DIR, "session_" + tok)
                 open(fp, "w").close()
@@ -381,18 +240,14 @@ class H(BaseHTTPRequestHandler):
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)
             b = parse_body(self)
+            admin = store.get("admin", {})
             old_pwd = b.get("old_password", "")
             new_pwd = b.get("new_password", "")
             if not old_pwd or not new_pwd:
                 return send_json(self, {"error": "missing fields"}, 400)
-            conn = get_db()
-            row = conn.execute("SELECT password FROM admin WHERE username=?", (ADMIN_USER,)).fetchone()
-            conn.close()
-            if row and row[0] == old_pwd:
-                conn2 = get_db()
-                conn2.execute("UPDATE admin SET password=?", (new_pwd,))
-                conn2.commit()
-                conn2.close()
+            if admin.get("password") == old_pwd:
+                store["admin"]["password"] = new_pwd
+                save_store(store)
                 return send_json(self, {"ok": True})
             return send_json(self, {"error": "old password wrong"}, 401)
         elif path == "/api/categories" and require_auth(self):
@@ -400,38 +255,37 @@ class H(BaseHTTPRequestHandler):
             name = b.get("name", "").strip()
             if not name:
                 return send_json(self, {"error": "missing name"}, 400)
-            conn = get_db()
-            c = conn.cursor()
-            c.execute("INSERT INTO categories(name, sort_order) VALUES (?,?)",
-                      (name, int(b.get("sort_order", 0))))
-            conn.commit()
-            row = conn.execute(
-                "SELECT id, name, sort_order FROM categories WHERE id=?",
-                (c.lastrowid,)).fetchone()
-            conn.close()
-            send_json(self, {"id": row[0], "name": row[1], "sort_order": row[2]} if row else {}, 201)
+            categories = store.get("categories", [])
+            max_order = max((c.get("sort_order", 0) for c in categories), default=-1)
+            new_id = get_next_id(categories)
+            categories.append({"id": new_id, "name": name, "sort_order": int(b.get("sort_order", max_order + 1))})
+            store["categories"] = categories
+            save_store(store)
+            send_json(self, {"id": new_id, "name": name, "sort_order": categories[-1]["sort_order"]}, 201)
         elif path == "/api/products":
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)
-            conn = get_db()
-            count = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
-            if count >= MAX_PRODUCTS:
-                conn.close()
-                return send_json(self, {"error": "商品数量已达上限 (" + str(MAX_PRODUCTS) + ")", "count": count}, 400)
+            products = store.get("products", [])
+            if len(products) >= MAX_PRODUCTS:
+                return send_json(self, {"error": "商品数量已达上限 (" + str(MAX_PRODUCTS) + ")", "count": len(products)}, 400)
             b = parse_body(self)
-            title = (b.get("title", "") or "").strip()[:60]
-            c = conn.cursor()
-            c.execute(
-                "INSERT INTO products(name,title,category,price,stock,image,detail_image,description,wechat,qq) VALUES(?,?,?,?,?,?,?,?,?,?)",
-                (b.get("name",""), title, b.get("category",""), float(b.get("price",0)),
-                 int(b.get("stock",0)), b.get("image","placeholder.jpg"), b.get("detail_image",""),
-                 b.get("description",""), b.get("wechat",""), b.get("qq","")))
-            conn.commit()
-            pid = c.lastrowid
-            row = conn.execute("SELECT * FROM products WHERE id=?", (pid,)).fetchone()
-            conn.close()
-            auto_commit()
-            send_json(self, dict(row) if row else {}, 201)
+            new_id = get_next_id(products)
+            products.append({
+                "id": new_id,
+                "name": b.get("name", ""),
+                "title": (b.get("title", "") or "").strip()[:60],
+                "category": b.get("category", ""),
+                "price": float(b.get("price", 0)),
+                "stock": int(b.get("stock", 0)),
+                "image": b.get("image", "placeholder.jpg"),
+                "detail_image": b.get("detail_image", ""),
+                "description": b.get("description", ""),
+                "wechat": b.get("wechat", ""),
+                "qq": b.get("qq", "")
+            })
+            store["products"] = products
+            save_store(store)
+            send_json(self, products[-1], 201)
         elif path == "/api/upload":
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)
@@ -471,35 +325,38 @@ class H(BaseHTTPRequestHandler):
                 return send_json(self, {"error": "missing fields"}, 400)
             if not re.match(r"^[0-9]{6,8}$", password):
                 return send_json(self, {"error": "查询密码为6-8位数字"}, 400)
-            conn = get_db()
-            product = conn.execute("SELECT * FROM products WHERE id=?", (int(product_id),)).fetchone()
+            products = store.get("products", [])
+            product = next((p for p in products if p["id"] == int(product_id)), None)
             if not product:
-                conn.close()
                 return send_json(self, {"error": "商品不存在"}, 404)
             total = round(float(product["price"]) * qty, 2)
             now = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
-            c = conn.cursor()
-            c.execute("INSERT INTO orders(email,password,product_id,qty,total,status,created_at) VALUES(?,?,?,?,?,?,?)",
-                      (email, password, int(product_id), qty, total, "pending", now))
-            conn.commit()
-            oid = c.lastrowid
-            conn.close()
-            auto_commit()
-            send_json(self, {"ok": True, "order_id": oid, "total": total, "product_name": product["name"]})
+            orders = store.get("orders", [])
+            new_id = get_next_id(orders)
+            orders.append({
+                "id": new_id,
+                "email": email,
+                "password": password,
+                "product_id": int(product_id),
+                "qty": qty,
+                "total": total,
+                "status": "pending",
+                "created_at": now
+            })
+            store["orders"] = orders
+            save_store(store)
+            send_json(self, {"ok": True, "order_id": new_id, "total": total, "product_name": product["name"]})
         elif path == "/api/order/query":
             b = parse_body(self)
             email = (b.get("email") or "").strip().lower()
             password = (b.get("password") or "").strip()
             if not email or not password:
                 return send_json(self, {"error": "missing fields"}, 400)
-            conn = get_db()
-            clean_expired(conn)
-            row = conn.execute(
-                "SELECT * FROM orders WHERE email=? AND password=? AND status='pending' ORDER BY created_at DESC LIMIT 1",
-                (email, password)).fetchone()
-            conn.close()
-            if row:
-                send_json(self, dict(row))
+            store = clean_expired(store)
+            orders = store.get("orders", [])
+            order = next((o for o in orders if o["email"] == email and o["password"] == password and o["status"] == "pending"), None)
+            if order:
+                send_json(self, order)
             else:
                 send_json(self, {"error": "未找到订单，请确认邮箱和密码是否正确"}, 404)
         else:
@@ -509,72 +366,73 @@ class H(BaseHTTPRequestHandler):
         p = urlparse(self.path)
         path = p.path.rstrip("/") or "/"
         qs = parse_qs(p.query)
+        store = load_store()
+        
         if path == "/api/products" and require_auth(self):
             pid = qs.get("id", [None])[0]
             if not pid:
                 return send_json(self, {"error": "missing id"}, 400)
             b = parse_body(self)
-            title = (b.get("title", "") or "").strip()[:60]
-            conn = get_db()
-            conn.execute(
-                "UPDATE products SET name=?,title=?,category=?,price=?,stock=?,image=?,detail_image=?,description=?,wechat=?,qq=? WHERE id=?",
-                (b.get("name",""), title, b.get("category",""), float(b.get("price",0)),
-                 int(b.get("stock",0)), b.get("image","placeholder.jpg"), b.get("detail_image",""),
-                 b.get("description",""), b.get("wechat",""), b.get("qq",""), int(pid)))
-            conn.commit()
-            row = conn.execute("SELECT * FROM products WHERE id=?", (int(pid),)).fetchone()
-            conn.close()
-            send_json(self, dict(row) if row else {})
+            products = store.get("products", [])
+            for prod in products:
+                if prod["id"] == int(pid):
+                    prod["name"] = b.get("name", prod["name"])
+                    prod["title"] = (b.get("title", "") or "").strip()[:60]
+                    prod["category"] = b.get("category", prod["category"])
+                    prod["price"] = float(b.get("price", prod["price"]))
+                    prod["stock"] = int(b.get("stock", prod["stock"]))
+                    prod["image"] = b.get("image", prod["image"])
+                    prod["detail_image"] = b.get("detail_image", prod.get("detail_image", ""))
+                    prod["description"] = b.get("description", prod.get("description", ""))
+                    prod["wechat"] = b.get("wechat", prod.get("wechat", ""))
+                    prod["qq"] = b.get("qq", prod.get("qq", ""))
+                    break
+            store["products"] = products
+            save_store(store)
+            send_json(self, next((pr for pr in products if pr["id"] == int(pid)), {}))
         elif path == "/api/settings" and require_auth(self):
             b = parse_body(self)
-            conn = get_db()
+            settings = store.get("settings", {})
             for k, v in b.items():
-                conn.execute("INSERT OR REPLACE INTO settings VALUES (?,?)", (k, str(v)))
-            conn.commit()
-            conn.close()
+                settings[k] = str(v)
+            store["settings"] = settings
+            save_store(store)
             send_json(self, {"ok": True})
         elif path == "/api/admin/payment_qrcodes" and require_auth(self):
             b = parse_body(self)
-            conn = get_db()
+            settings = store.get("settings", {})
             for k in ("wechat_pay_qr", "alipay_qr"):
-                v = b.get(k, "")
-                conn.execute("INSERT OR REPLACE INTO settings VALUES (?,?)", (k, str(v)))
-            conn.commit()
-            conn.close()
-            auto_commit()
+                if k in b:
+                    settings[k] = b[k]
+            store["settings"] = settings
+            save_store(store)
             send_json(self, {"ok": True})
         elif path == "/api/categories" and require_auth(self):
             b = parse_body(self)
             cats = b.get("categories", [])
-            conn = get_db()
-            for item in cats:
-                cid = item.get("id")
-                name = item.get("name", "").strip()
-                order = int(item.get("sort_order", 0))
-                if cid and name:
-                    conn.execute("UPDATE categories SET name=?, sort_order=? WHERE id=?", (name, order, int(cid)))
-            conn.commit()
-            conn.close()
+            store["categories"] = cats
+            save_store(store)
             send_json(self, {"ok": True})
         elif path == "/api/order/confirm":
             b = parse_body(self)
             oid = b.get("order_id")
             if not oid:
                 return send_json(self, {"error": "missing order_id"}, 400)
-            conn = get_db()
-            order = conn.execute("SELECT * FROM orders WHERE id=?", (int(oid),)).fetchone()
+            orders = store.get("orders", [])
+            order = next((o for o in orders if o["id"] == int(oid)), None)
             if not order:
-                conn.close()
                 return send_json(self, {"error": "订单不存在"}, 404)
             if order["status"] == "completed":
-                conn.close()
                 return send_json(self, {"ok": True, "already": True})
-            conn.execute("UPDATE products SET stock=stock-? WHERE id=? AND stock>=?",
-                         (order["qty"], order["product_id"], order["qty"]))
-            conn.execute("UPDATE orders SET status='completed' WHERE id=?", (int(oid),))
-            conn.commit()
-            conn.close()
-            auto_commit()
+            products = store.get("products", [])
+            for prod in products:
+                if prod["id"] == order["product_id"]:
+                    prod["stock"] = max(0, prod["stock"] - order["qty"])
+                    break
+            order["status"] = "completed"
+            store["orders"] = orders
+            store["products"] = products
+            save_store(store)
             send_json(self, {"ok": True})
         elif path == "/api/admin/order/confirm":
             if not require_auth(self):
@@ -583,16 +441,19 @@ class H(BaseHTTPRequestHandler):
             oid = b.get("order_id")
             if not oid:
                 return send_json(self, {"error": "missing order_id"}, 400)
-            conn = get_db()
-            order = conn.execute("SELECT * FROM orders WHERE id=?", (int(oid),)).fetchone()
+            orders = store.get("orders", [])
+            order = next((o for o in orders if o["id"] == int(oid)), None)
             if not order:
-                conn.close()
                 return send_json(self, {"error": "订单不存在"}, 404)
-            conn.execute("UPDATE products SET stock=stock-? WHERE id=? AND stock>=?",
-                         (order["qty"], order["product_id"], order["qty"]))
-            conn.execute("UPDATE orders SET status='completed' WHERE id=?", (int(oid),))
-            conn.commit()
-            conn.close()
+            products = store.get("products", [])
+            for prod in products:
+                if prod["id"] == order["product_id"]:
+                    prod["stock"] = max(0, prod["stock"] - order["qty"])
+                    break
+            order["status"] = "completed"
+            store["orders"] = orders
+            store["products"] = products
+            save_store(store)
             send_json(self, {"ok": True})
         else:
             self.send_error(404)
@@ -601,16 +462,16 @@ class H(BaseHTTPRequestHandler):
         p = urlparse(self.path)
         path = p.path.rstrip("/") or "/"
         qs = parse_qs(p.query)
+        store = load_store()
+        
         if path == "/api/categories":
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)
             cid = qs.get("id", [None])[0]
             if not cid:
                 return send_json(self, {"error": "missing id"}, 400)
-            conn = get_db()
-            conn.execute("DELETE FROM categories WHERE id=?", (int(cid),))
-            conn.commit()
-            conn.close()
+            store["categories"] = [c for c in store.get("categories", []) if c["id"] != int(cid)]
+            save_store(store)
             return send_json(self, {"ok": True})
         elif path == "/api/products":
             if not require_auth(self):
@@ -618,17 +479,14 @@ class H(BaseHTTPRequestHandler):
             pid = qs.get("id", [None])[0]
             if not pid:
                 return send_json(self, {"error": "missing id"}, 400)
-            conn = get_db()
-            conn.execute("DELETE FROM products WHERE id=?", (int(pid),))
-            conn.commit()
-            conn.close()
+            store["products"] = [pr for pr in store.get("products", []) if pr["id"] != int(pid)]
+            save_store(store)
             send_json(self, {"ok": True})
         elif path == "/api/admin/order/clean":
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)
-            conn = get_db()
-            clean_expired(conn)
-            conn.close()
+            store = clean_expired(store)
+            save_store(store)
             send_json(self, {"ok": True})
         elif path == "/api/admin/order/delete":
             if not require_auth(self):
@@ -636,10 +494,8 @@ class H(BaseHTTPRequestHandler):
             oid = qs.get("id", [None])[0]
             if not oid:
                 return send_json(self, {"error": "missing id"}, 400)
-            conn = get_db()
-            conn.execute("DELETE FROM orders WHERE id=?", (int(oid),))
-            conn.commit()
-            conn.close()
+            store["orders"] = [o for o in store.get("orders", []) if o["id"] != int(oid)]
+            save_store(store)
             send_json(self, {"ok": True})
         else:
             self.send_error(404)
@@ -667,8 +523,25 @@ class H(BaseHTTPRequestHandler):
 
 def main():
     pull_data_from_git()
-    init_db()
+    os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
+    # Initialize default store if needed
+    if not os.path.exists(STORE_FILE):
+        default_store = {
+            "products": [],
+            "categories": [],
+            "orders": [],
+            "settings": {
+                "site_title": "喵喵咪丫",
+                "shop_description": "",
+                "wechat_pay_qr": "",
+                "alipay_qr": "",
+                "wechat_qr": "",
+                "shop_logo": ""
+            },
+            "admin": {"username": ADMIN_USER, "password": ADMIN_PASS}
+        }
+        save_store(default_store)
     port = int(os.environ.get("PORT", 8000))
     server = HTTPServer(("0.0.0.0", port), H)
     print(f"Pet shop running on http://0.0.0.0:{port}")
