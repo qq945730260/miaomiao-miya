@@ -363,7 +363,7 @@ class H(BaseHTTPRequestHandler):
             })
             store["orders"] = orders
             save_store(store)
-            send_json(self, {"ok": True, "order_id": new_id, "total": total, "product_name": product["name"]})
+            send_json(self, {"ok": True, "order_id": order_number, "total": total, "product_name": product["name"]})
         elif path == "/api/order/query":
             b = parse_body(self)
             email = (b.get("email") or "").strip().lower()
@@ -440,7 +440,7 @@ class H(BaseHTTPRequestHandler):
                 return send_json(self, {"error": "missing order_id"}, 400)
             orders = store.get("orders", [])
             # Support both old format (id) and new format (order_number)
-            order = next((o for o in orders if o.get("order_number") == oid or o.get("id") == int(oid)), None)
+            order = next((o for o in orders if o.get("order_number") == str(oid)), None)
             if not order:
                 return send_json(self, {"error": "订单不存在"}, 404)
             if order.get("status") == "completed":
@@ -464,7 +464,7 @@ class H(BaseHTTPRequestHandler):
                 return send_json(self, {"error": "missing order_id"}, 400)
             orders = store.get("orders", [])
             # Support both old format (id) and new format (order_number)
-            order = next((o for o in orders if o.get("order_number") == oid or o.get("id") == int(oid)), None)
+            order = next((o for o in orders if o.get("order_number") == str(oid)), None)
             if not order:
                 return send_json(self, {"error": "订单不存在"}, 404)
             products = store.get("products", [])

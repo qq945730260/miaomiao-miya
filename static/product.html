@@ -138,7 +138,7 @@ function createOrderAndShowPay(){
   fetch('/api/order/create',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email,password:password,product_id:currentProduct.id,qty:currentQty})})
     .then(function(r){return r.json();})
     .then(function(d){btn.disabled=false;btn.textContent='确认下单';
-      if(d.ok){document.getElementById('pay-step1').style.display='none';document.getElementById('pay-step2').style.display='';document.getElementById('pay-amount2').textContent='\u00A5'+d.total.toFixed(2);window._currentOrderTotal=d.total;window._currentOrderId=d.order_id;}
+      if(d.ok){document.getElementById('pay-step1').style.display='none';document.getElementById('pay-step2').style.display='';document.getElementById('pay-amount2').textContent='\u00A5'+d.total.toFixed(2);window._currentOrderTotal=d.total;window._currentOrderId=d.order_number;}
       else toast(d.error||'下单失败');
     }).catch(function(){toast("网络错误");btn.disabled=false;btn.textContent='确认下单';});
 }
