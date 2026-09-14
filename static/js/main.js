@@ -148,10 +148,10 @@ function doQueryOrder(){
   fetch(API+'/order/query',{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email,password:password})})
     .then(function(r){return r.json();})
     .then(function(d){
-      if(d.id){
+      if(d.order_number){
         var st=d.status==='completed'?'<span style="color:#7BC89A;font-weight:700;">已确认</span>':'<span style="color:#e67e22;font-weight:700;">待付款确认</span>';
         if(resultDiv)resultDiv.innerHTML='<div style="background:#fff8f0;border-radius:10px;padding:14px;border:1px solid #fce4ec;">'
-          +'<p><strong>订单编号：</strong>'+d.id+'</p>'
+          +'<p><strong>订单编号：</strong>'+d.order_number+'</p>'
           +'<p><strong>商品：</strong>'+esc(d.product_name)+'</p>'
           +'<p><strong>数量：</strong>'+d.qty+' 件</p>'
           +'<p><strong>应付金额：</strong><span style="color:var(--pink-dark);font-weight:800;">&#165;'+d.total+'</span></p>'
