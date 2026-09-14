@@ -55,11 +55,9 @@ function renderCatNav(){
 
 function filterByCat(cat){
   activeCat=cat;
-  document.querySelectorAll('.cat-btn').forEach(function(b){
-    b.classList.remove('active');
-  });
   var btns = document.querySelectorAll('.cat-btn');
-  for(var i=0; i<buttons.length; i++){
+  for(var i=0; i<btns.length; i++){
+    btns[i].classList.remove('active');
     if(btns[i].getAttribute('data-cat') === cat){
       btns[i].classList.add('active');
     }
