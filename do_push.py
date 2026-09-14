@@ -7,14 +7,12 @@ env['HTTPS_PROXY'] = 'http://127.0.0.1:10808'
 
 def run(cmd):
     r = subprocess.run(cmd, capture_output=True, text=True, cwd=repo, env=env)
-    if r.stdout: print('OUT:', r.stdout.strip())
-    if r.stderr: print('ERR:', r.stderr.strip()[:300])
-    return r.returncode
+    return r.returncode, r.stdout.strip(), r.stderr.strip()
 
-run(['git', '-c', 'safe.directory=*', 'add', '.'])
-r1 = run(['git', '-c', 'safe.directory=*', 'commit', '-q', '-m', 'add debug logging to order query'])
-print('commit exit:', r1)
+run(['git', '-c', 'safe.directory=*', 'add', '-A'])
+r1 = run(['git', '-c', 'safe.directory=*', 'commit', '-q', '-m', 'cleanup all debug scripts'])
+print('commit:', r1[0], r1[2][:100])
 r2 = run(['git', '-c', 'safe.directory=*', '-c', 'http.proxy=http://127.0.0.1:10808', '-c', 'https.proxy=http://127.0.0.1:10808', 'push', 'origin', 'v5'])
-print('push exit:', r2)
-if r2 == 0:
-    print('PUSHED OK')
+print('push:', r2[0], r2[2][:200])
+r3 = run(['git', '-c', 'safe.directory=*', 'status', '--short'])
+print('status:', r3[1] if r3[1] else 'clean')
