@@ -149,14 +149,12 @@ function doQueryOrder(){
     .then(function(r){return r.json();})
     .then(function(d){
       if(d.order_number){
-        var st=d.status==='completed'?'<span style="color:#7BC89A;font-weight:700;">已确认</span>':'<span style="color:#e67e22;font-weight:700;">待付款确认</span>';
         if(resultDiv)resultDiv.innerHTML='<div style="background:#fff8f0;border-radius:10px;padding:14px;border:1px solid #fce4ec;">'
           +'<p><strong>订单编号：</strong>'+d.order_number+'</p>'
           +'<p><strong>商品：</strong>'+esc(d.product_name)+'</p>'
           +'<p><strong>数量：</strong>'+d.qty+' 件</p>'
           +'<p><strong>应付金额：</strong><span style="color:var(--pink-dark);font-weight:800;">&#165;'+d.total+'</span></p>'
-          +'<p><strong>状态：</strong>'+st+'</p>'
-          +'<p style="font-size:0.78rem;color:#aaa;margin-top:8px;">订单保留7天后自动清除</p>'
+                    +'<p style="font-size:0.78rem;color:#aaa;margin-top:8px;">订单保留7天后自动清除</p>'
           +'</div>';
       }else{if(resultDiv)resultDiv.innerHTML='<p style="color:#e74c3c;text-align:center;">'+esc(d.error||'未找到订单')+'</p>';}
     })
