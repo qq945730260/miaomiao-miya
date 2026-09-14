@@ -379,6 +379,27 @@ class H(BaseHTTPRequestHandler):
                 send_json(self, result)
             else:
                 send_json(self, {"error": "未找到订单，请确认邮箱和密码是否正确"}, 404)
+        elif path == "/api/order/confirm":
+            b = parse_body(self)
+            oid = b.get("order_id")
+            if not oid:
+                return send_json(self, {"error": "missing order_id"}, 400)
+            orders = store.get("orders", [])
+            order = next((o for o in orders if o.get("order_number") == str(oid)), None)
+            if not order:
+                return send_json(self, {"error": "订单不存在"}, 404)
+            if order.get("status") == "completed":
+                return send_json(self, {"ok": True, "already": True})
+            products = store.get("products", [])
+            for prod in products:
+                if prod["id"] == order["product_id"]:
+                    prod["stock"] = max(0, prod["stock"] - order["qty"])
+                    break
+            order["status"] = "completed"
+            store["orders"] = orders
+            store["products"] = products
+            save_store(store)
+            send_json(self, {"ok": True})
         else:
             self.send_error(404)
 
@@ -431,28 +452,6 @@ class H(BaseHTTPRequestHandler):
             b = parse_body(self)
             cats = b.get("categories", [])
             store["categories"] = cats
-            save_store(store)
-            send_json(self, {"ok": True})
-        elif path == "/api/order/confirm":
-            b = parse_body(self)
-            oid = b.get("order_id")
-            if not oid:
-                return send_json(self, {"error": "missing order_id"}, 400)
-            orders = store.get("orders", [])
-            # Support both old format (id) and new format (order_number)
-            order = next((o for o in orders if o.get("order_number") == str(oid)), None)
-            if not order:
-                return send_json(self, {"error": "订单不存在"}, 404)
-            if order.get("status") == "completed":
-                return send_json(self, {"ok": True, "already": True})
-            products = store.get("products", [])
-            for prod in products:
-                if prod["id"] == order["product_id"]:
-                    prod["stock"] = max(0, prod["stock"] - order["qty"])
-                    break
-            order["status"] = "completed"
-            store["orders"] = orders
-            store["products"] = products
             save_store(store)
             send_json(self, {"ok": True})
         elif path == "/api/admin/order/confirm":
