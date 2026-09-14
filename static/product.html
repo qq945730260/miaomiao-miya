@@ -82,7 +82,7 @@
   </div>
 </div>
 
-<script src="/static/js/main.js?v=5"></script>
+<script src="/static/js/main.js?v=6"></script>
 <script>
 var currentProduct=null,currentQty=1,_paySettings={};
 function loadDetail(){
@@ -149,6 +149,15 @@ function showPayQR(type){var s=window._paySettings||{};var imgKey=type==='wechat
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
 function showOrderSuccess(){
+  // Call API to confirm order and deduct stock
+  if(window._currentOrderId){
+    fetch('/api/order/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id:window._currentOrderId})})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(!d.ok && !d.already) toast(d.error||'确认失败');
+      })
+      .catch(function(){toast('网络错误');});
+  }
   document.getElementById('pay-modal').classList.remove('open');
   var overlay=document.createElement('div');overlay.className='modal-overlay';overlay.id='success-overlay';
   var _sod='success-overlay'; overlay.innerHTML='<div class="modal" style="padding:28px;width:320px;text-align:center;"><h3 style="color:#7BC89A;margin-bottom:12px;">✓ 订单已确认</h3><p style="color:var(--brown);margin-bottom:6px;font-size:0.95rem;">您的订单已提交成功</p><p style="color:var(--pink-dark);font-weight:700;font-size:1.1rem;margin-bottom:16px;">订单查询有效期 1 天</p><p style="color:#aaa;font-size:0.78rem;margin-bottom:18px;">请保存好邮箱和查询密码，用于后续查询</p><button class="btn btn-pink" onclick="document.getElementById('+_sod+').remove()">关闭</button></div>';

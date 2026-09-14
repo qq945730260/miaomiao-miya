@@ -126,7 +126,7 @@ td img { width: 55px; height: 42px; object-fit: cover; border-radius: 6px; }
 .toast.show { opacity: 1; transform: translateY(0); }
 
 /* QR Modal */
-.qr-modal { text-align: center; }
+.qr-modal { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .qr-modal img { max-width: 220px; border-radius: 12px; }
 
 /* Loading */

@@ -45,14 +45,25 @@ function renderCatNav(){
     btn.onclick=function(){filterByCat(c.name);};
     inner.appendChild(btn);
   });
+  // Ensure all buttons have proper onclick handlers
+  var allBtn = nav.querySelector('.cat-btn[data-cat="all"]');
+  if(allBtn && !allBtn.onclick){
+    allBtn.onclick = function(){filterByCat('all');};
+  }
   nav.style.display='';
 }
 
 function filterByCat(cat){
   activeCat=cat;
   document.querySelectorAll('.cat-btn').forEach(function(b){
-    b.classList.toggle('active', b.getAttribute('data-cat')===cat);
+    b.classList.remove('active');
   });
+  var btns = document.querySelectorAll('.cat-btn');
+  for(var i=0; i<buttons.length; i++){
+    if(btns[i].getAttribute('data-cat') === cat){
+      btns[i].classList.add('active');
+    }
+  }
   renderPage();
 }
 

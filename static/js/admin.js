@@ -74,7 +74,7 @@ function renderOrders(){
     var o=orders[i];
     var st=o.status==="completed"?'<span style="color:#7BC89A;font-weight:700;">已确认</span>':'<span style="color:#e67e22;font-weight:700;">待确认</span>';
     html+='<tr>'
-      +'<td>'+o.id+'</td>'
+      +'<td>'+(o.order_number||o.id)+'</td>'
       +'<td>'+(o.product_title?esc(o.product_title):esc(o.product_name))+'</td>'
       +'<td style="font-size:0.8rem;">'+esc(o.email)+'</td>'
       +'<td>'+o.qty+'</td>'

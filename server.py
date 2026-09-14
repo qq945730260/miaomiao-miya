@@ -50,10 +50,27 @@ def save_store(store):
         print("ERROR saving store:", e, flush=True)
 
 def get_next_id(items):
-    """Get next ID for a list of items."""
+    """Get next sequential ID for a list of items."""
     if not items:
         return 1
     return max(item.get("id", 0) for item in items) + 1
+
+def generate_order_number():
+    """Generate order number like 26091401 (date + sequence)"""
+    now = time.strftime("%y%m%d")
+    # Get today's orders count to determine sequence
+    store_file = os.path.join(BASE_DIR, "data", "store.json")
+    seq = 1
+    if os.path.exists(store_file):
+        try:
+            with open(store_file, "r", encoding="utf-8") as f:
+                store = json.load(f)
+            today = time.strftime("%Y-%m-%d")
+            today_orders = [o for o in store.get("orders", []) if o.get("created_at", "").startswith(today)]
+            seq = len(today_orders) + 1
+        except:
+            pass
+    return now + str(seq).zfill(2)
 
 SYNC_LOG = os.path.join(BASE_DIR, "data", "sync.log")
 
@@ -332,9 +349,10 @@ class H(BaseHTTPRequestHandler):
             total = round(float(product["price"]) * qty, 2)
             now = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
             orders = store.get("orders", [])
+            order_number = generate_order_number()
             new_id = get_next_id(orders)
             orders.append({
-                "id": new_id,
+                "order_number": order_number,
                 "email": email,
                 "password": password,
                 "product_id": int(product_id),
@@ -354,9 +372,11 @@ class H(BaseHTTPRequestHandler):
                 return send_json(self, {"error": "missing fields"}, 400)
             store = clean_expired(store)
             orders = store.get("orders", [])
-            order = next((o for o in orders if o["email"] == email and o["password"] == password and o["status"] == "pending"), None)
+            order = next((o for o in orders if o.get("email") == email and o.get("password") == password and o.get("status") == "pending"), None)
             if order:
-                send_json(self, order)
+                # Remove status from response
+                result = {k: v for k, v in order.items() if k != "status"}
+                send_json(self, result)
             else:
                 send_json(self, {"error": "未找到订单，请确认邮箱和密码是否正确"}, 404)
         else:
@@ -419,10 +439,11 @@ class H(BaseHTTPRequestHandler):
             if not oid:
                 return send_json(self, {"error": "missing order_id"}, 400)
             orders = store.get("orders", [])
-            order = next((o for o in orders if o["id"] == int(oid)), None)
+            # Support both old format (id) and new format (order_number)
+            order = next((o for o in orders if o.get("order_number") == oid or o.get("id") == int(oid)), None)
             if not order:
                 return send_json(self, {"error": "订单不存在"}, 404)
-            if order["status"] == "completed":
+            if order.get("status") == "completed":
                 return send_json(self, {"ok": True, "already": True})
             products = store.get("products", [])
             for prod in products:
@@ -442,7 +463,8 @@ class H(BaseHTTPRequestHandler):
             if not oid:
                 return send_json(self, {"error": "missing order_id"}, 400)
             orders = store.get("orders", [])
-            order = next((o for o in orders if o["id"] == int(oid)), None)
+            # Support both old format (id) and new format (order_number)
+            order = next((o for o in orders if o.get("order_number") == oid or o.get("id") == int(oid)), None)
             if not order:
                 return send_json(self, {"error": "订单不存在"}, 404)
             products = store.get("products", [])
