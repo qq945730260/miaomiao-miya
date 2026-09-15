@@ -108,7 +108,7 @@ def auto_commit():
                 cf.write("https://x-access-token:" + token + "@github.com\n")
             try:
                 r3 = subprocess.run(["git", "-c", "safe.directory=*",
-                    "-c", "credential.helper=store--file=" + cred_file,
+                    "-c", "credential.helper=store --file=" + cred_file,
                     "push", "origin", "v5"],
                     capture_output=True, timeout=30, cwd=BASE_DIR)
             finally:
@@ -131,7 +131,7 @@ def pull_data_from_git():
             cf.write("https://x-access-token:" + token + "@github.com\n")
         try:
             r = subprocess.run(["git", "-c", "safe.directory=*",
-                "-c", "credential.helper=store--file=" + cred_file,
+                "-c", "credential.helper=store --file=" + cred_file,
                 "pull", "origin", "v5"],
                 capture_output=True, timeout=15, cwd=BASE_DIR)
         finally:
