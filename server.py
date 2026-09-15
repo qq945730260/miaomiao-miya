@@ -102,7 +102,7 @@ def auto_commit():
             capture_output=True, timeout=10, cwd=BASE_DIR)
         if b"nothing" not in r2.stdout and b"nothing" not in r2.stderr:
             # Use credential helper to avoid token in URL (triggers GH secret scan)
-        cred_file = os.path.join(BASE_DIR, ".git", ".credentials")
+            cred_file = os.path.join(BASE_DIR, ".git", ".credentials")
         os.makedirs(os.path.join(BASE_DIR, ".git"), exist_ok=True)
         with open(cred_file, "w") as cf:
             cf.write("https://x-access-token:" + token + "@github.com\n")
