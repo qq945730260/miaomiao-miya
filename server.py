@@ -101,9 +101,19 @@ def auto_commit():
         r2 = subprocess.run(["git", "-c", "safe.directory=*", "commit", "-q", "--allow-empty", "-m", "auto-commit data"],
             capture_output=True, timeout=10, cwd=BASE_DIR)
         if b"nothing" not in r2.stdout and b"nothing" not in r2.stderr:
+            # Use credential helper to avoid token in URL (triggers GH secret scan)
+        cred_file = os.path.join(BASE_DIR, ".git", ".credentials")
+        os.makedirs(os.path.join(BASE_DIR, ".git"), exist_ok=True)
+        with open(cred_file, "w") as cf:
+            cf.write("https://x-access-token:" + token + "@github.com\n")
+        try:
             r3 = subprocess.run(["git", "-c", "safe.directory=*",
-                "push", "https://"+token+"@github.com/qq945730260/miaomiao-miya.git", "v5"],
+                "-c", "credential.helper=store--file=" + cred_file,
+                "push", "origin", "v5"],
                 capture_output=True, timeout=30, cwd=BASE_DIR)
+        finally:
+            try: os.remove(cred_file)
+            except: pass
             if r3.returncode == 0:
                 log_sync("OK: pushed to v5")
             else:
@@ -115,8 +125,18 @@ def auto_commit():
 def pull_data_from_git():
     """Pull latest data from git on startup."""
     try:
-        r = subprocess.run(["git", "-c", "safe.directory=*", "pull", "origin", "v5"],
-            capture_output=True, timeout=15, cwd=BASE_DIR)
+        cred_file = os.path.join(BASE_DIR, ".git", ".credentials")
+        os.makedirs(os.path.join(BASE_DIR, ".git"), exist_ok=True)
+        with open(cred_file, "w") as cf:
+            cf.write("https://x-access-token:" + token + "@github.com\n")
+        try:
+            r = subprocess.run(["git", "-c", "safe.directory=*",
+                "-c", "credential.helper=store--file=" + cred_file,
+                "pull", "origin", "v5"],
+                capture_output=True, timeout=15, cwd=BASE_DIR)
+        finally:
+            try: os.remove(cred_file)
+            except: pass
         if r.returncode == 0:
             log_sync("OK: pulled on startup")
         else:
@@ -559,11 +579,10 @@ class H(BaseHTTPRequestHandler):
 
 
 def main():
-    pull_data_from_git()
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    # Only initialize default store if file does NOT exist (first run only)
     if not os.path.exists(STORE_FILE):
+        # First run: create default store and try to pull from git
         default_store = {
             "products": [],
             "categories": [],
@@ -579,6 +598,29 @@ def main():
             "admin": {"username": ADMIN_USER, "password": ADMIN_PASS}
         }
         save_store(default_store)
+        pull_data_from_git()
+    else:
+        # Subsequent runs: load local data, then merge with git (git wins for missing fields)
+        local = load_store()
+        # Try to pull latest from git
+        token = os.environ.get("GH_TOKEN", "").strip()
+        if token:
+            try:
+                r = subprocess.run(["git", "-c", "safe.directory=*", "pull", "origin", "v5"],
+                    capture_output=True, timeout=15, cwd=BASE_DIR)
+                if r.returncode == 0:
+                    # Git pulled successfully - reload from file
+                    pass  # load_store() will read the updated file on next call
+                else:
+                    log_sync("SKIP pull: result=" + str(r.returncode))
+            except Exception as e:
+                log_sync("SKIP pull exception: " + str(e))
+        # Local file already has the data, just make sure keys exist
+        local.setdefault("settings", {})
+        local.setdefault("products", [])
+        local.setdefault("categories", [])
+        local.setdefault("orders", [])
+        local.setdefault("admin", {"username": ADMIN_USER, "password": ADMIN_PASS})
     port = int(os.environ.get("PORT", 8000))
     server = HTTPServer(("0.0.0.0", port), H)
     print(f"Pet shop running on http://0.0.0.0:{port}")
