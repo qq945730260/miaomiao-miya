@@ -124,6 +124,10 @@ def auto_commit():
 
 def pull_data_from_git():
     """Pull latest data from git on startup."""
+    token = os.environ.get("GH_TOKEN", "").strip()
+    if not token:
+        log_sync("SKIP: GH_TOKEN not set")
+        return
     try:
         cred_file = os.path.join(BASE_DIR, ".git", ".credentials")
         os.makedirs(os.path.join(BASE_DIR, ".git"), exist_ok=True)
