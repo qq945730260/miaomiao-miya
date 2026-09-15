@@ -103,22 +103,22 @@ def auto_commit():
         if b"nothing" not in r2.stdout and b"nothing" not in r2.stderr:
             # Use credential helper to avoid token in URL (triggers GH secret scan)
             cred_file = os.path.join(BASE_DIR, ".git", ".credentials")
-        os.makedirs(os.path.join(BASE_DIR, ".git"), exist_ok=True)
-        with open(cred_file, "w") as cf:
-            cf.write("https://x-access-token:" + token + "@github.com\n")
-        try:
-            r3 = subprocess.run(["git", "-c", "safe.directory=*",
-                "-c", "credential.helper=store--file=" + cred_file,
-                "push", "origin", "v5"],
-                capture_output=True, timeout=30, cwd=BASE_DIR)
-        finally:
-            try: os.remove(cred_file)
-            except: pass
-            if r3.returncode == 0:
-                log_sync("OK: pushed to v5")
-            else:
-                err = r3.stderr.decode("utf-8", errors="replace")[:300]
-                log_sync("FAIL: " + err)
+            os.makedirs(os.path.join(BASE_DIR, ".git"), exist_ok=True)
+            with open(cred_file, "w") as cf:
+                cf.write("https://x-access-token:" + token + "@github.com\n")
+            try:
+                r3 = subprocess.run(["git", "-c", "safe.directory=*",
+                    "-c", "credential.helper=store--file=" + cred_file,
+                    "push", "origin", "v5"],
+                    capture_output=True, timeout=30, cwd=BASE_DIR)
+            finally:
+                try: os.remove(cred_file)
+                except: pass
+                if r3.returncode == 0:
+                    log_sync("OK: pushed to v5")
+                else:
+                    err = r3.stderr.decode("utf-8", errors="replace")[:300]
+                    log_sync("FAIL: " + err)
     except Exception as e:
         log_sync("EXC: " + str(e))
 
