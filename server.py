@@ -16,14 +16,21 @@ BLOCKED_DOMAIN = "miaomiao.au0817.dpdns.org"
 ORDER_RETENTION_DAYS = 7
 
 def load_store():
-    """Load store data from JSON file."""
+    """Load store data from JSON file. Never reset to defaults if file exists."""
     if os.path.exists(STORE_FILE):
         try:
             with open(STORE_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+            # Ensure all expected keys exist (migrate old formats)
+            data.setdefault("products", [])
+            data.setdefault("categories", [])
+            data.setdefault("orders", [])
+            data.setdefault("settings", {})
+            data.setdefault("admin", {"username": ADMIN_USER, "password": ADMIN_PASS})
+            return data
         except Exception as e:
             print("ERROR loading store:", e, flush=True)
-    # Return default empty store
+    # Only create default on first run when file truly doesn't exist
     return {
         "products": [],
         "categories": [],
@@ -555,7 +562,7 @@ def main():
     pull_data_from_git()
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    # Initialize default store if needed
+    # Only initialize default store if file does NOT exist (first run only)
     if not os.path.exists(STORE_FILE):
         default_store = {
             "products": [],
