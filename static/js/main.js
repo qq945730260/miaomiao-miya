@@ -86,7 +86,14 @@ function loadOrders(){
 function renderPage(){
   var main=document.getElementById('main-content');
   if(!main)return;
-  var displayProds=activeCat==='all'?allProducts:allProducts.filter(function(p){return p.category===activeCat;});
+  var displayProds=activeCat==='all'?allProducts.slice():allProducts.filter(function(p){return p.category===activeCat;});
+  // Sort: products with sales first (by sales count desc), then by default order
+  displayProds.sort(function(a,b){
+    var soldA=soldMap[a.id]||0;
+    var soldB=soldMap[b.id]||0;
+    if(soldA!==soldB)return soldB-soldA; // More sales first
+    return a.id-b.id; // Same sales, keep original order
+  });
   if(displayProds.length===0){
     main.innerHTML='<p class="loading-text">该分类下暂无商品</p>';
   }else{
