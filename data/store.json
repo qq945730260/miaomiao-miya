@@ -4,9 +4,9 @@
       "id": 1,
       "name": "金渐层A",
       "title": "金渐层幼猫A窝",
-      "category": "萌宠",
-      "price": 2800.0,
-      "stock": 5,
+      "category": "金渐层猫",
+      "price": 2300.0,
+      "stock": 0,
       "image": "placeholder.jpg",
       "detail_image": "",
       "description": "精品金渐层",
@@ -17,12 +17,25 @@
       "id": 2,
       "name": "银渐层B",
       "title": "银渐层幼猫B窝",
-      "category": "萌宠",
-      "price": 3200.0,
-      "stock": 3,
+      "category": "银渐层猫",
+      "price": 2100.0,
+      "stock": 0,
       "image": "placeholder.jpg",
       "detail_image": "",
       "description": "银渐层小猫",
+      "wechat": "",
+      "qq": ""
+    },
+    {
+      "id": 3,
+      "name": "宠物指甲剪",
+      "title": "Miozaa宠物指甲剪猫狗通用保护血线",
+      "category": "宠物用品",
+      "price": 9.0,
+      "stock": 18,
+      "image": "placeholder.jpg",
+      "detail_image": "",
+      "description": "宠物指甲剪猫狗通用保护血线",
       "wechat": "",
       "qq": ""
     }
@@ -30,13 +43,23 @@
   "categories": [
     {
       "id": 1,
-      "name": "金渐层猫仔",
+      "name": "全部",
       "sort_order": 0
     },
     {
       "id": 2,
-      "name": "银渐层猫仔",
+      "name": "宠物用品",
       "sort_order": 1
+    },
+    {
+      "id": 3,
+      "name": "金渐层猫",
+      "sort_order": 2
+    },
+    {
+      "id": 4,
+      "name": "银渐层猫",
+      "sort_order": 3
     }
   ],
   "orders": [
