@@ -606,13 +606,16 @@ class H(BaseHTTPRequestHandler):
 def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    # Always pull from git first to get latest data on every startup
+    
+    # Always pull from git first
     pull_data_from_git()
-    # Then load (will read whatever is in store.json, including pulled data)
+    
+    # Load store data
     store = load_store()
-    # If no data loaded, use embedded defaults
-    if not store.get("products") and not store.get("categories"):
-        print("WARNING: No data, using embedded defaults", flush=True)
+    
+    # Fallback: if no data, use embedded defaults
+    if not store.get("products") or not store.get("categories"):
+        print("WARNING: No data found, using embedded defaults", flush=True)
         store = {
             "products": [
                 {"id": 1, "name": "金渐层A", "title": "金渐层幼猫A窝", "category": "金渐层猫", "price": 2300.0, "stock": 5, "image": "placeholder.jpg", "detail_image": "", "description": "精品金渐层", "wechat": "", "qq": ""},
@@ -629,24 +632,22 @@ def main():
             "settings": {"site_title": "喵喵咪丫", "shop_description": "让每一只小猫咪找到温暖的家", "wechat_pay_qr": "", "alipay_qr": "", "wechat_qr": "", "shop_logo": ""},
             "admin": {"username": ADMIN_USER, "password": ADMIN_PASS}
         }
-    # Ensure all expected keys exist (migration safety)
+        save_store(store)
+    
+    # Ensure all expected keys exist
     store.setdefault("products", [])
     store.setdefault("categories", [])
     store.setdefault("orders", [])
-    store.setdefault("settings", {
-        "site_title": "喵喵咪丫",
-        "shop_description": "",
-        "wechat_pay_qr": "",
-        "alipay_qr": "",
-        "wechat_qr": "",
-        "shop_logo": ""
-    })
+    store.setdefault("settings", {"site_title": "喵喵咪丫", "shop_description": "", "wechat_pay_qr": "", "alipay_qr": "", "wechat_qr": "", "shop_logo": ""})
     store.setdefault("admin", {"username": ADMIN_USER, "password": ADMIN_PASS})
+    
     port = int(os.environ.get("PORT", 8000))
     server = HTTPServer(("0.0.0.0", port), H)
     print(f"Pet shop running on http://0.0.0.0:{port}")
     print("Loaded " + str(len(store.get("products", []))) + " products, " + str(len(store.get("categories", []))) + " categories", flush=True)
     server.serve_forever()
+
+
 
 if __name__ == "__main__":
     main()
