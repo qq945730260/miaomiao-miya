@@ -585,51 +585,32 @@ class H(BaseHTTPRequestHandler):
 def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    if not os.path.exists(STORE_FILE):
-        # First run: create default store and try to pull from git
-        default_store = {
-            "products": [],
-            "categories": [],
-            "orders": [],
-            "settings": {
-                "site_title": "喵喵咪丫",
-                "shop_description": "",
-                "wechat_pay_qr": "",
-                "alipay_qr": "",
-                "wechat_qr": "",
-                "shop_logo": ""
-            },
-            "admin": {"username": ADMIN_USER, "password": ADMIN_PASS}
-        }
-        save_store(default_store)
-        pull_data_from_git()
-    else:
-        # Subsequent runs: load local data, then merge with git (git wins for missing fields)
-        local = load_store()
-        # Try to pull latest from git
-        token = os.environ.get("GH_TOKEN", "").strip()
-        if token:
-            try:
-                r = subprocess.run(["git", "-c", "safe.directory=*", "pull", "origin", "v5"],
-                    capture_output=True, timeout=15, cwd=BASE_DIR)
-                if r.returncode == 0:
-                    # Git pulled successfully - reload from file
-                    pass  # load_store() will read the updated file on next call
-                else:
-                    log_sync("SKIP pull: result=" + str(r.returncode))
-            except Exception as e:
-                log_sync("SKIP pull exception: " + str(e))
-        # Local file already has the data, just make sure keys exist
-        local.setdefault("settings", {})
-        local.setdefault("products", [])
-        local.setdefault("categories", [])
-        local.setdefault("orders", [])
-        local.setdefault("admin", {"username": ADMIN_USER, "password": ADMIN_PASS})
+    # Always pull from git first to get latest data on every startup
+    pull_data_from_git()
+    # Then load (will read whatever is in store.json, including pulled data)
+    store = load_store()
+    # Ensure all expected keys exist (migration safety)
+    store.setdefault("products", [])
+    store.setdefault("categories", [])
+    store.setdefault("orders", [])
+    store.setdefault("settings", {
+        "site_title": "喵喵咪丫",
+        "shop_description": "",
+        "wechat_pay_qr": "",
+        "alipay_qr": "",
+        "wechat_qr": "",
+        "shop_logo": ""
+    })
+    store.setdefault("admin", {"username": ADMIN_USER, "password": ADMIN_PASS})
     port = int(os.environ.get("PORT", 8000))
     server = HTTPServer(("0.0.0.0", port), H)
     print(f"Pet shop running on http://0.0.0.0:{port}")
+    print("Loaded " + str(len(store.get("products", []))) + " products, " + str(len(store.get("categories", []))) + " categories", flush=True)
     server.serve_forever()
 
+
+if __name__ == "__main__":
+    main()
 
 if __name__ == "__main__":
     main()
