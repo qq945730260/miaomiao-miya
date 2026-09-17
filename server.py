@@ -98,6 +98,9 @@ def auto_commit():
     try:
         r = subprocess.run(["git", "-c", "safe.directory=*", "add", "-A", "data/", "uploads/"],
             capture_output=True, timeout=10, cwd=BASE_DIR)
+        # Also commit uploads
+        subprocess.run(["git", "-c", "safe.directory=*", "add", "-A", "uploads/"],
+            capture_output=True, timeout=10, cwd=BASE_DIR)
         r2 = subprocess.run(["git", "-c", "safe.directory=*", "commit", "-q", "--allow-empty", "-m", "auto-commit data"],
             capture_output=True, timeout=10, cwd=BASE_DIR)
         if b"nothing" not in r2.stdout and b"nothing" not in r2.stderr:

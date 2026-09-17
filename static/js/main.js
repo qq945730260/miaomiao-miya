@@ -36,9 +36,12 @@ function renderCatNav(){
   if(!nav)return;
   var inner=nav.querySelector('.cat-nav-inner');
   if(!inner)return;
+  // Remove only non-"all" buttons
   var existing=inner.querySelectorAll('.cat-btn:not([data-cat="all"])');
   existing.forEach(function(b){b.remove();});
+  // Add category buttons (skip if name is "all" to avoid duplication)
   categories.forEach(function(c){
+    if(c.name === '全部') return; // Skip, HTML already has it
     var btn=document.createElement('button');
     btn.className='cat-btn';
     btn.setAttribute('data-cat',c.name);
