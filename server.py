@@ -589,6 +589,25 @@ def main():
     pull_data_from_git()
     # Then load (will read whatever is in store.json, including pulled data)
     store = load_store()
+    # If no data loaded, use embedded defaults
+    if not store.get("products") and not store.get("categories"):
+        print("WARNING: No data, using embedded defaults", flush=True)
+        store = {
+            "products": [
+                {"id": 1, "name": "金渐层A", "title": "金渐层幼猫A窝", "category": "金渐层猫", "price": 2300.0, "stock": 5, "image": "placeholder.jpg", "detail_image": "", "description": "精品金渐层", "wechat": "", "qq": ""},
+                {"id": 2, "name": "银渐层B", "title": "银渐层幼猫B窝", "category": "银渐层猫", "price": 2100.0, "stock": 3, "image": "placeholder.jpg", "detail_image": "", "description": "银渐层小猫", "wechat": "", "qq": ""},
+                {"id": 3, "name": "宠物指甲剪", "title": "Miozaa宠物指甲剪猫狗通用保护血线", "category": "宠物用品", "price": 9.0, "stock": 18, "image": "placeholder.jpg", "detail_image": "", "description": "宠物指甲剪", "wechat": "", "qq": ""}
+            ],
+            "categories": [
+                {"id": 1, "name": "全部", "sort_order": 0},
+                {"id": 2, "name": "宠物用品", "sort_order": 1},
+                {"id": 3, "name": "金渐层猫", "sort_order": 2},
+                {"id": 4, "name": "银渐层猫", "sort_order": 3}
+            ],
+            "orders": [],
+            "settings": {"site_title": "喵喵咪丫", "shop_description": "让每一只小猫咪找到温暖的家", "wechat_pay_qr": "", "alipay_qr": "", "wechat_qr": "", "shop_logo": ""},
+            "admin": {"username": ADMIN_USER, "password": ADMIN_PASS}
+        }
     # Ensure all expected keys exist (migration safety)
     store.setdefault("products", [])
     store.setdefault("categories", [])
