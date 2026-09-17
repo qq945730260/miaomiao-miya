@@ -116,11 +116,12 @@ function cleanOrders(){
 
 function loadSettings(){
   document.getElementById("form-site_title").value=settings.site_title||"";
-  document.getElementById("form-site_tagline").value=settings.site_tagline||"";
+  document.getElementById("form-shop_description").value=settings.shop_description||"";
   document.getElementById("form-wechat_qr").value=settings.wechat_qr||"";
   if(settings.wechat_qr){var q=document.getElementById("settings-qr-preview");q.src="/uploads/"+settings.wechat_qr;q.style.display="";}
   if(settings.wechat_pay_qr){var w=document.getElementById("wechat-pay-preview");w.src="/uploads/"+settings.wechat_pay_qr;w.style.display="";document.getElementById("form-wechat_pay_qr").value=settings.wechat_pay_qr;}
   if(settings.alipay_qr){var a=document.getElementById("alipay-pay-preview");a.src="/uploads/"+settings.alipay_qr;a.style.display="";document.getElementById("form-alipay_qr").value=settings.alipay_qr;}
+  if(settings.shop_logo){var l=document.getElementById("shop-logo-preview");l.src="/uploads/"+settings.shop_logo;l.style.display="";document.getElementById("form-shop_logo").value=settings.shop_logo;}
 }
 
 function loadCategories(){
