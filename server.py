@@ -134,19 +134,40 @@ def pull_data_from_git():
         with open(cred_file, "w") as cf:
             cf.write("https://x-access-token:" + token + "@github.com\n")
         try:
+            # Fetch first to check status
+            r_fetch = subprocess.run(["git", "-c", "safe.directory=*",
+                "-c", "credential.helper=store --file=" + cred_file,
+                "fetch", "origin", "v5"],
+                capture_output=True, timeout=15, cwd=BASE_DIR)
+            if r_fetch.returncode != 0:
+                log_sync("FETCH FAIL: " + r_fetch.stderr.decode("utf-8", errors="replace")[:200])
+                return
+            # Then pull
             r = subprocess.run(["git", "-c", "safe.directory=*",
                 "-c", "credential.helper=store --file=" + cred_file,
-                "pull", "origin", "v5"],
-                capture_output=True, timeout=15, cwd=BASE_DIR)
+                "pull", "--ff-only", "origin", "v5"],
+                capture_output=True, timeout=30, cwd=BASE_DIR)
         finally:
             try: os.remove(cred_file)
             except: pass
         if r.returncode == 0:
             log_sync("OK: pulled on startup")
         else:
-            log_sync("SKIP: pull result=" + str(r.returncode))
+            err = r.stderr.decode("utf-8", errors="replace")[:300]
+            log_sync("PULL FAIL: " + err)
+            # Try force pull as fallback
+            log_sync("TRYING FORCE PULL...")
+            r2 = subprocess.run(["git", "-c", "safe.directory=*",
+                "-c", "credential.helper=store --file=" + cred_file,
+                "pull", "--force", "origin", "v5"],
+                capture_output=True, timeout=30, cwd=BASE_DIR)
+            if r2.returncode == 0:
+                log_sync("OK: force pulled")
+            else:
+                log_sync("FORCE PULL FAILED: " + r2.stderr.decode("utf-8", errors="replace")[:200])
     except Exception as e:
-        log_sync("SKIP: pull exception: " + str(e))
+        log_sync("EXCEPTION: " + str(e))
+
 
 def clean_expired(store):
     """Remove expired orders."""
