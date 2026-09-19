@@ -14,13 +14,25 @@ function toast(msg){
 
 function login(user,pwd){
   if(!user||!pwd){toast("请输入用户名和密码");return;}
+  var btn=document.querySelector("#login-section .btn-pink");
+  if(btn){btn.disabled=true;btn.textContent="登录中...";}
+  console.log("LOGIN ATTEMPT:", user, pwd.length);
   fetch(API+"/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:user,password:pwd})})
-    .then(function(r){return r.json();})
+    .then(function(r){
+      console.log("LOGIN RESPONSE status:", r.status);
+      return r.json();
+    })
     .then(function(d){
+      console.log("LOGIN DATA:", d);
+      if(btn){btn.disabled=false;btn.textContent="登录";}
       if(d.ok){isAuthenticated=true;document.getElementById("login-section").style.display="none";document.getElementById("admin-main").style.display="block";document.getElementById("nav-auth").style.display="flex";loadData();}
       else{toast(d.error||"登录失败");}
     })
-    .catch(function(){toast("网络错误");});
+    .catch(function(e){
+      console.error("LOGIN ERROR:", e);
+      if(btn){btn.disabled=false;btn.textContent="登录";}
+      toast("网络错误: " + (e.message || "未知错误"));
+    });
 }
 
 function logout(){
@@ -40,7 +52,8 @@ function loadData(){
       loadSettings();
       loadCategories();
       renderOrders();
-    });
+    })
+    .catch(function(e){console.error("LOAD DATA ERROR:",e);toast("加载数据失败");});
 }
 
 function renderTable(){
@@ -128,7 +141,7 @@ function loadCategories(){
   fetch(API+"/categories").then(function(r){return r.json();}).then(function(cats){
     categories=cats||[];
     renderCatList();
-  });
+  }).catch(function(e){console.error("LOAD CATEGORIES ERROR:",e);});
 }
 function renderCatList(){
   var c=document.getElementById("cat-list");
@@ -361,9 +374,11 @@ function submitForm(){
 
 function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML;}
 
+// Check auth first, then show login form
 fetch(API+"/admin/check")
   .then(function(r){return r.json();})
   .then(function(d){
+    console.log("CHECK RESPONSE:", d);
     if(d.auth){
       document.getElementById("login-section").style.display="none";
       document.getElementById("admin-main").style.display="block";
@@ -372,4 +387,4 @@ fetch(API+"/admin/check")
       loadData();
     }
   })
-  .catch(function(){});
+  .catch(function(e){console.error("CHECK ERROR:",e);});
