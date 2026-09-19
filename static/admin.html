@@ -13,6 +13,7 @@
   <nav class="nav-links" id="nav-auth" style="display:none;">
     <a href="/" target="_blank">查看网站</a>
     <a href="#" onclick="logout();return false;">退出登录</a>
+  </nav>
 
 </header>
 
@@ -134,6 +135,7 @@
       <input type="file" id="detail-file-input" accept="image/*" style="display:none" onchange="uploadDetailImage(event)">
       <img id="detail-preview-img" class="preview-img" style="display:none;max-width:150px;margin-top:6px;" alt="详情图预览">
       <input type="hidden" id="form-detail_image" value="">
+    </div>
     <div class="form-group"><label>商品描述</label><textarea id="form-desc" rows="2" placeholder="简短介绍..."></textarea></div>
     <div class="form-group"><label>客服微信（选填）</label><input type="text" id="form-wechat" placeholder="留空则不显示"></div>
     <div class="btn-row">
