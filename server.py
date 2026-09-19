@@ -345,26 +345,38 @@ class H(BaseHTTPRequestHandler):
         path = p.path.rstrip("/") or "/"
 
         if path == "/api/admin/login":
-            b = parse_body(self)
-            username = b.get("username","").strip()
-            password = b.get("password","").strip()
-            print(f"LOGIN ATTEMPT: user={username!r} pwd_len={len(password)}", flush=True)
-            stored_user = get_setting("admin_username") or "xuxu"
-            stored_pwd = admin_password()
-            print(f"STored: user={stored_user!r} pwd={stored_pwd!r}", flush=True)
-            if username == stored_user and password == stored_pwd:
-                tok = secrets.token_hex(16)
-                os.makedirs(UPLOAD_DIR, exist_ok=True)
-                open(os.path.join(UPLOAD_DIR, "session_" + tok), "w").close()
-                body = json.dumps({"ok": True}, ensure_ascii=False).encode("utf-8")
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Set-Cookie", f"session={tok}; Path=/; Max-Age={SESSION_TTL}")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-            else:
-                self.send_json({"error": "密码错误"}, 401)
+            try:
+                b = parse_body(self)
+                username = b.get("username","").strip()
+                password = b.get("password","").strip()
+                print(f"LOGIN ATTEMPT: user={username!r} pwd_len={len(password)}", flush=True)
+                stored_user = get_setting("admin_username") or "xuxu"
+                stored_pwd = admin_password()
+                print(f"STORED: user={stored_user!r} pwd_set={bool(stored_pwd)}", flush=True)
+                if username == stored_user and password == stored_pwd:
+                    tok = secrets.token_hex(16)
+                    os.makedirs(UPLOAD_DIR, exist_ok=True)
+                    open(os.path.join(UPLOAD_DIR, "session_" + tok), "w").close()
+                    body = json.dumps({"ok": True}, ensure_ascii=False).encode("utf-8")
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json; charset=utf-8")
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                    self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+                    self.send_header("Set-Cookie", f"session={tok}; Path=/; Max-Age={SESSION_TTL}")
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+                    print("LOGIN SUCCESS", flush=True)
+                else:
+                    print(f"AUTH FAILED: user_match={username==stored_user} pwd_match={password==stored_pwd}", flush=True)
+                    self.send_json({"error": "用户名或密码错误"}, 401)
+            except Exception as e:
+                print(f"LOGIN EXCEPTION: {e}", flush=True)
+                try:
+                    self.send_json({"error": "服务器内部错误: " + str(e)}, 500)
+                except:
+                    pass
         elif path == "/api/admin/change_password":
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)
