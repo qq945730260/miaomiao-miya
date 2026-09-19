@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0">
+<title id="page-title">加载中...</title>
+<link rel="stylesheet" href="/static/css/style.css">
+  <!-- v20260913d -->
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <img id="shop-logo-img" src="" alt="店标" style="display:none;height:36px;width:auto;margin-right:10px;vertical-align:middle;">
+    <div class="logo" id="site-logo"></div>
+  </div>
+  <nav class="nav-links">
+    <a href="javascript:history.back()">&#8592; 返回</a>
+    <a href="/">首页</a>
+  </nav>
+</header>
+
+<div class="detail-wrap" id="detail">
+  <p class="loading-text">加载中...</p>
+</div>
+
+<footer class="footer">
+  <p id="footer-text">让每一只小猫咪找到温暖的家</p>
+  <div class="btn-row">
+    <a href="javascript:void(0)" class="btn btn-wechat" onclick="showWechatQR()">微信客服</a>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="qr-modal">
+  <div class="modal qr-modal">
+    <h3>微信客服</h3>
+    <img id="qr-img" src="" alt="二维码" style="max-width:220px;border-radius:12px;margin:16px 0;">
+    <p id="qr-placeholder" style="color:#8B7355;display:none;">暂无二维码，请联系客服</p>
+    <button class="btn btn-pink btn-sm" onclick="closeQR()">关闭</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="pay-modal">
+  <div class="modal pay-modal">
+    <h3>确认支付</h3>
+    <div id="pay-step1">
+      <p style="font-size:0.88rem;color:var(--brown-light);margin-bottom:12px;">请填写信息以创建订单，用于后续查询</p>
+      <div class="form-group"><label>您的邮箱 *</label><input type="email" id="pay-email" placeholder="example@mail.com"></div>
+      <div class="form-group"><label>查询密码（6-8位数字，用于以后查询订单）*</label><input type="password" id="pay-password" placeholder="请输入6-8位数字" maxlength="8" pattern="[0-9]*"></div>
+      <div class="pay-total">应付金额：<span id="pay-amount" style="color:var(--pink-dark);font-size:1.5rem;font-weight:800;">￥0</span></div>
+      <div class="btn-row" style="justify-content:center;gap:12px;">
+        <button class="btn btn-pink" onclick="createOrderAndShowPay()">确认下单</button>
+        <button class="btn btn-pink" style="background:#ccc;" onclick="closePayModal()">返回</button>
+      </div>
+    </div>
+    <div id="pay-step2" style="display:none;">
+      <p style="text-align:center;color:#7BC89A;font-weight:700;margin-bottom:10px;">&#10004; 订单已创建，请选择支付方式</p>
+      <div class="pay-total">应付金额：<span id="pay-amount2" style="color:var(--pink-dark);font-size:1.5rem;font-weight:800;">￥0</span></div>
+      <div class="pay-options">
+        <div class="pay-option" onclick="showPayQR('wechat')">
+          <div class="pay-icon wechat-icon">微</div>
+          <div class="pay-label">微信支付</div>
+        </div>
+        <div class="pay-option" onclick="showPayQR('alipay')">
+          <div class="pay-icon alipay-icon">支</div>
+          <div class="pay-label">支付宝</div>
+        </div>
+      </div>
+      <div id="pay-qrcode-area" style="text-align:center;margin-top:14px;display:none;">
+        <img id="pay-qrcode-img" src="" alt="收款码" style="max-width:220px;border-radius:12px;">
+        <p id="pay-qrcode-label" style="margin-top:8px;color:var(--brown-light);font-size:0.9rem;"></p>
+      </div>
+
+      <div class="btn-row" style="justify-content:center;margin-top:12px;gap:10px;">
+        <button class="btn btn-pink pay-confirm-btn" onclick="showOrderSuccess()"> 
+          <span class="pay-main">支付后点我</span>
+          <span class="pay-sub">可截图发客服确认订单</span>
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="closePayModal()">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/main.js?v=6"></script>
+<script>
+var currentProduct=null,currentQty=1,_paySettings={};
+function loadDetail(){
+  var params=new URLSearchParams(location.search);var id=params.get("id");
+  if(!id){location.href="/";return;}
+  var detailEl=document.getElementById('detail');
+  var timeout=setTimeout(function(){detailEl.innerHTML='<p class="loading-text" style="color:#e74c3c;">加载超时，请刷新重试</p>';},10000);
+  Promise.all([fetch("/api/settings"),fetch("/api/products?id="+id)])
+    .then(function(responses){return Promise.all(responses.map(function(r){return r.json();}));})
+    .then(function(data){
+      clearTimeout(timeout);
+      siteSettings=data[0]||{};var prod=data[1];
+      if(!prod||!prod.id){detailEl.innerHTML='<p class="loading-text" style="color:#e74c3c;">商品不存在</p>';return;}
+      currentProduct=prod;currentQty=1;
+      var stockHtml=prod.stock>0?'<span style="color:#7BC89A;font-weight:700;">有货 ('+prod.stock+' 件)</span>':'<span style="color:#e74c3c;font-weight:700;">已售罄</span>';
+      var titleHtml=prod.title?'<h1>'+esc(prod.title)+'</h1>':'<h1>'+esc(prod.name)+'</h1>';
+      var topHtml='<div class="detail-top"><div class="detail-left"><img class="detail-head-img" src="/uploads/'+esc(prod.image)+'" alt="'+esc(prod.name)+'" onerror="this.src=\'/uploads/placeholder.jpg\'">'+
+        '</div><div class="detail-right">'+
+        '<span class="detail-cat">'+esc(prod.category)+'</span>'+titleHtml+
+        '<div class="detail-price">\u00A5'+prod.price+'</div>'+
+        '<div class="detail-stock">'+stockHtml+'</div>'+
+        buildQtySection(prod.price,prod.stock)+
+        '</div></div>';
+      var descHtml='<p class="detail-desc">'+esc(prod.description||'联系我们了解更多')+'</p>';
+      var detImgHtml='';
+      if(prod.detail_image){detImgHtml+='<div class="detail-img-wrap"><img class="detail-img" id="detail-main-img" src="/uploads/'+esc(prod.detail_image)+'" alt="详情图" onerror="this.parentElement.style.display=\'none\'"></div>';}
+      detailEl.innerHTML=topHtml+descHtml+detImgHtml;
+      if(siteSettings&&siteSettings.site_title){document.title=siteSettings.site_title+' - '+esc(prod.name);var logo=document.getElementById('site-logo');if(logo)logo.textContent=esc(siteSettings.site_title);}
+    })
+    .catch(function(e){clearTimeout(timeout);console.error(e);detailEl.innerHTML='<p class="loading-text" style="color:#e74c3c;">加载失败，请刷新重试</p>';});
+}
+function buildQtySection(price,stock){
+  if(stock<=0)return '';
+  var html='<div class="qty-section">';
+  html+='<div class="qty-control"><button class="qty-btn" onclick="changeQty(-1)">-</button>';
+  html+='<input type="number" class="qty-input" id="qty-input" value="1" min="1" max="'+stock+'" onchange="updateTotal()"><button class="qty-btn" onclick="changeQty(1)">+</button></div>';
+  html+='<div class="total-price">合计：<span class="total-amount">&#165;'+price+'</span></div>';
+  html+='<div class="detail-actions"><a href="javascript:void(0)" class="btn btn-pink" onclick="openPayModal()">&#128179; 立即购买</a>';
+  html+='<a href="javascript:void(0)" class="btn btn-wechat" onclick="showWechatQR()">微信咨询</a></div></div>';
+  return html;
+}
+function changeQty(d){var input=document.getElementById('qty-input');var s=parseInt(input.getAttribute('max'));var v=parseInt(input.value)||1;v=Math.max(1,Math.min(s,v+d));input.value=v;updateTotal();}
+function updateTotal(){if(!currentProduct)return;var qty=parseInt(document.getElementById('qty-input').value)||1;currentQty=qty;var total=(currentProduct.price*qty).toFixed(2);var el=document.querySelector('.total-amount');if(el)el.textContent='\u00A5'+total;var pa=document.getElementById('pay-amount');if(pa)pa.textContent='\u00A5'+total;var pa2=document.getElementById('pay-amount2');if(pa2)pa2.textContent='\u00A5'+total;}
+function openPayModal(){document.getElementById('pay-step1').style.display='';document.getElementById('pay-step2').style.display='none';document.getElementById('pay-email').value='';document.getElementById('pay-password').value='';document.getElementById('pay-qrcode-area').style.display='none';document.getElementById('pay-modal').classList.add('open');updateTotal();fetch('/api/settings').then(function(r){return r.json();}).then(function(s){window._paySettings=s||{};});}
+function closePayModal(){document.getElementById('pay-modal').classList.remove('open');}
+function createOrderAndShowPay(){
+  var email=document.getElementById('pay-email').value.trim().toLowerCase();
+  var password=document.getElementById('pay-password').value;
+  if(!email){toast("请输入邮箱");return;}
+  if(!password){toast("请输入查询密码");return;}
+  if(!/^[0-9]{6,8}$/.test(password)){toast("查询密码为6-8位数字");return;}
+  var btn=document.querySelector('#pay-step1 .btn-pink');btn.disabled=true;btn.textContent='提交中...';
+  fetch('/api/order/create',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email,password:password,product_id:currentProduct.id,qty:currentQty})})
+    .then(function(r){return r.json();})
+    .then(function(d){btn.disabled=false;btn.textContent='确认下单';
+      if(d.ok){document.getElementById('pay-step1').style.display='none';document.getElementById('pay-step2').style.display='';document.getElementById('pay-amount2').textContent='\u00A5'+d.total.toFixed(2);window._currentOrderTotal=d.total;window._currentOrderId=d.order_id;}
+      else toast(d.error||'下单失败');
+    }).catch(function(){toast("网络错误");btn.disabled=false;btn.textContent='确认下单';});
+}
+function showPayQR(type){var s=window._paySettings||{};var imgKey=type==='wechat'?'wechat_pay_qr':'alipay_qr';var label=type==='wechat'?'微信扫码支付':'支付宝扫码支付';var filename=s[imgKey]||'';var area=document.getElementById('pay-qrcode-area');var img=document.getElementById('pay-qrcode-img');var lbl=document.getElementById('pay-qrcode-label');var amt=window._currentOrderTotal!==undefined?'\u00A5'+window._currentOrderTotal.toFixed(2):'\u00A50';
+  if(filename){img.src='/uploads/'+filename;img.style.display='';lbl.innerHTML=label+' <span style="color:var(--pink-dark);font-weight:700;">（实付 '+amt+'）</span>';}
+  else{img.style.display='none';lbl.textContent='暂无'+label+'，请先联系客服';}
+  area.style.display='block';}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+function showOrderSuccess(){
+  if(!window._currentOrderId){toast("订单ID缺失");return;}
+  fetch("/api/order/confirm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({order_id:window._currentOrderId})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      document.getElementById("pay-modal").classList.remove("open");
+      if(d.ok || d.already){
+        var overlay=document.createElement("div");overlay.className="modal-overlay";overlay.id="success-overlay";
+        var _sod="success-overlay";overlay.innerHTML='<div class="modal" style="padding:28px;width:320px;text-align:center;"><h3 style="color:#7BC89A;margin-bottom:12px;">✓ 订单已确认</h3><p style="color:var(--brown);margin-bottom:6px;font-size:0.95rem;">您的订单已提交成功</p><p style="color:var(--pink-dark);font-weight:700;font-size:1.1rem;margin-bottom:16px;">订单查询有效期 1 天</p><p style="color:#aaa;font-size:0.78rem;margin-bottom:18px;">请保存好邮箱和查询密码，用于后续查询</p><button class="btn btn-pink" onclick="document.getElementById('+'_sod'+'").remove()">关闭</button></div>';
+        document.body.appendChild(overlay);
+        overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};
+      } else {
+        toast(d.error||"确认失败");
+      }
+    })
+    .catch(function(){toast("网络错误");});
+}
+loadDetail();
+</script>
+</body>
+</html>

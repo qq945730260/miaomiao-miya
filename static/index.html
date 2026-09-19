@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0">
+<title id="page-title">加载中...</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <img id="shop-logo-img" src="" alt="店标" style="display:none;height:40px;width:auto;margin-right:10px;vertical-align:middle;">
+    <div class="logo" id="site-logo"></div>
+  </div>
+  <nav class="nav-links">
+    <a href="/">首页</a>
+    <a href="javascript:void(0)" onclick="openOrderQuery()">查询订单</a>
+  </nav>
+</header>
+
+<section class="hero" id="hero-section">
+  <h1 id="hero-announcement"></h1>
+  <p id="hero-subtitle"></p>
+</section>
+
+<nav class="cat-nav" id="cat-nav" style="display:none;">
+  <div class="cat-nav-inner">
+    <button class="cat-btn active" data-cat="all">全部</button>
+  </div>
+</nav>
+<main id="main-content">
+  <div class="loading-text">加载中...</div>
+</main>
+
+<footer class="footer">
+  <p id="footer-text">让每一只小猫咪找到温暖的家</p>
+  <div class="btn-row">
+    <a href="javascript:void(0)" class="btn btn-wechat" onclick="showWechatQR()">微信客服</a>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="order-query-modal">
+  <div class="modal qr-modal">
+    <h3>查询订单</h3>
+    <div class="form-group"><label>下单邮箱</label><input type="email" id="order-query-email" placeholder="请输入下单时填写的邮箱"></div>
+    <div class="form-group"><label>查询密码（6-8位数字）</label><input type="password" id="order-query-password" placeholder="请输入6-8位数字" maxlength="8" pattern="[0-9]*"></div>
+    <button class="btn btn-pink" onclick="doQueryOrder()" style="width:100%;justify-content:center;margin-top:8px;">查询</button>
+    <div id="order-query-result" style="margin-top:14px;display:none;text-align:left;"></div>
+    <div class="btn-row" style="justify-content:center;margin-top:14px;">
+      <button class="btn btn-sm" style="background:#ccc;" onclick="closeOrderQuery()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="qr-modal">
+  <div class="modal qr-modal">
+    <h3>微信客服</h3>
+    <img id="qr-img" src="" alt="二维码" style="max-width:220px;border-radius:12px;margin:16px 0;">
+    <p id="qr-placeholder" style="color:#8B7355;display:none;">暂无二维码，请联系客服</p>
+    <button class="btn btn-pink btn-sm" onclick="closeQR()">关闭</button>
+  </div>
+</div>
+
+<script src="/static/js/main.js?v=6"></script>
+</body>
+</html>
