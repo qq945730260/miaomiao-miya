@@ -275,6 +275,9 @@ class H(BaseHTTPRequestHandler):
             self.send_json(get_settings_all())
         elif path == "/api/admin/check":
             self.send_json({"auth": self.require_auth()})
+        elif path == "/api/admin/test_login":
+            # Debug endpoint - test login without DB call
+            self.send_json({"ok": True, "debug": "CORS works"})
         elif path == "/api/admin/payment_qrcodes":
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)
@@ -345,8 +348,10 @@ class H(BaseHTTPRequestHandler):
             b = parse_body(self)
             username = b.get("username","").strip()
             password = b.get("password","").strip()
+            print(f"LOGIN ATTEMPT: user={username!r} pwd_len={len(password)}", flush=True)
             stored_user = get_setting("admin_username") or "xuxu"
             stored_pwd = admin_password()
+            print(f"STored: user={stored_user!r} pwd={stored_pwd!r}", flush=True)
             if username == stored_user and password == stored_pwd:
                 tok = secrets.token_hex(16)
                 os.makedirs(UPLOAD_DIR, exist_ok=True)
