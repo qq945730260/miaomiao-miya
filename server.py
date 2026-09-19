@@ -81,11 +81,15 @@ def _api_call(method, url, body=None):
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         try:
-            err_body = json.loads(e.read().decode("utf-8"))
+            err_text = e.read().decode("utf-8", errors="replace")
+            print(f"HTTP Error {e.code}: {err_text[:300]}", flush=True)
+            err_body = json.loads(err_text)
             return {"error": err_body.get("message", str(e))}
-        except:
+        except Exception as e2:
+            print(f"HTTP Error parse failed: {e2}", flush=True)
             return {"error": str(e)}
     except Exception as e:
+        print(f"API Error: {e}", flush=True)
         return {"error": str(e)}
 
 def admin_password():
@@ -294,17 +298,22 @@ class H(BaseHTTPRequestHandler):
             self.send_json(files)
         elif path == "/api/debug":
             upload_count = len([f for f in os.listdir(UPLOAD_DIR) if not f.startswith(".") and not f.startswith("session_")]) if os.path.exists(UPLOAD_DIR) else 0
-            prod_count = len(api_get("products", "id") or [])
-            cat_count = len(api_get("categories", "id") or [])
-            order_count = len(api_get("orders", "id") or [])
+            test_result = api_get("settings", "key,value")
+            db_ok = isinstance(test_result, list)
+            db_error = test_result.get("error", "") if isinstance(test_result, dict) else ""
+            prod_count = len(api_get("products", "id") or []) if db_ok else 0
+            cat_count = len(api_get("categories", "id") or []) if db_ok else 0
+            order_count = len(api_get("orders", "id") or []) if db_ok else 0
             self.send_json({
                 "db_up": db_up(),
+                "db_connected": db_ok,
+                "db_error": db_error[:200],
                 "upload_count": upload_count,
                 "product_count": prod_count,
                 "category_count": cat_count,
                 "order_count": order_count,
-                "gh_token_set": bool(os.environ.get("GH_TOKEN","").strip()),
                 "supabase_url_set": bool(SUPABASE_URL),
+                "supabase_key_set": bool(SUPABASE_ANON_KEY),
             })
         elif path.startswith("/static/"):
             self.serve_file(os.path.join(BASE_DIR, path.lstrip("/")))
