@@ -424,7 +424,8 @@ class H(BaseHTTPRequestHandler):
             elif isinstance(result, dict) and "error" in result:
                 self.send_json({"error": result["error"]}, 500)
             else:
-                self.send_json({"id": next_id, "name": name, "sort_order": b.get("sort_order", 0)}, 201)   elif path == "/api/products":
+                self.send_json({"id": next_id, "name": name, "sort_order": b.get("sort_order", 0)}, 201)
+        elif path == "/api/products":
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)
             b = self.parse_body()
