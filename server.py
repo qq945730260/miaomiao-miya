@@ -158,18 +158,34 @@ def upload_image(file_bytes, filename):
     try:
         ext = os.path.splitext(filename)[1].lower() or ".jpg"
         safe_name = secrets.token_hex(8) + ext
-        b64_data = base64.b64encode(file_bytes.rstrip(b"\r\n")).decode("utf-8")
-        result = _api_call("POST",
+        # Use Supabase Storage v2 API with service role
+        headers = {
+            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+            "apikey": SUPABASE_SERVICE_KEY,
+            "content-type": "application/octet-stream",
+        }
+        req = urllib.request.Request(
             f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{safe_name}",
-            {"data": b64_data, "upsert": False})
-        if result and "error" not in result:
-            return safe_name
-        # If storage insert fails, fallback to local
+            data=file_bytes.rstrip(b"\r\n"),
+            headers=headers,
+            method="POST"
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                print(f"Storage upload status: {resp.status}", flush=True)
+                return safe_name
+        except urllib.error.HTTPError as he:
+            err_body = he.read().decode("utf-8", errors="replace") if hasattr(he, "read") else ""
+            print(f"Storage HTTP error {he.code}: {err_body[:200]}", flush=True)
+        except Exception as e:
+            print(f"Storage error: {e}", flush=True)
+        # Fallback to local upload
         ext2 = os.path.splitext(filename)[1].lower() or ".jpg"
         sn = secrets.token_hex(8) + ext2
         os.makedirs(UPLOAD_DIR, exist_ok=True)
         with open(os.path.join(UPLOAD_DIR, sn), "wb") as f:
             f.write(file_bytes.rstrip(b"\r\n"))
+        print(f"Fallback: saved locally as {sn}", flush=True)
         return sn
     except Exception as e:
         print(f"Upload error: {e}", flush=True)
@@ -178,6 +194,7 @@ def upload_image(file_bytes, filename):
         os.makedirs(UPLOAD_DIR, exist_ok=True)
         with open(os.path.join(UPLOAD_DIR, sn), "wb") as f:
             f.write(file_bytes.rstrip(b"\r\n"))
+        return sn
         return sn
 
 
@@ -396,15 +413,18 @@ class H(BaseHTTPRequestHandler):
             name = b.get("name","").strip()
             if not name:
                 return self.send_json({"error": "missing name"}, 400)
-            result = api_insert("categories", {
-                "name": name,
-                "sort_order": b.get("sort_order", 0)
-            })
+            all_cats = api_get("categories", "id")
+            max_id = max([c["id"] for c in (all_cats or [])] or [0])
+            next_id = max_id + 1
+            rec = {"name": name, "sort_order": b.get("sort_order", 0), "id": next_id}
+            result = api_insert("categories", rec)
+            print(f"CATEGORY INSERT result: {result}", flush=True)
             if isinstance(result, list) and result:
                 self.send_json({"id": result[0]["id"], "name": name, "sort_order": b.get("sort_order", 0)}, 201)
+            elif isinstance(result, dict) and "error" in result:
+                self.send_json({"error": result["error"]}, 500)
             else:
-                self.send_json({"error": str(result)}, 500)
-        elif path == "/api/products":
+                self.send_json({"id": next_id, "name": name, "sort_order": b.get("sort_order", 0)}, 201)   elif path == "/api/products":
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)
             b = self.parse_body()
