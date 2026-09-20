@@ -4,3 +4,6 @@ __pycache__/
 data/
 uploads/
 .env
+*.pyc
+__pycache__/
+fix_*.py
