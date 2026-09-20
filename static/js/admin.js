@@ -41,6 +41,7 @@ function logout(){
 }
 
 function loadData(){
+  console.log("[ADMIN] Loading all data...");
   Promise.all([fetch(API+"/products"),fetch(API+"/settings"),fetch(API+"/categories"),fetch(API+"/orders")])
     .then(function(rs){return Promise.all(rs.map(function(r){return r.json();}));})
     .then(function(data){
@@ -48,6 +49,7 @@ function loadData(){
       settings=data[1]||{};
       categories=data[2]||[];
       orders=data[3]||[];
+      console.log("[ADMIN] products:", products.length, "settings keys:", Object.keys(settings), "categories:", categories.length, "orders:", orders.length);
       renderTable();
       loadSettings();
       loadCategories();
@@ -138,10 +140,15 @@ function loadSettings(){
 }
 
 function loadCategories(){
-  fetch(API+"/categories").then(function(r){return r.json();}).then(function(cats){
+  console.log("[ADMIN] Loading categories...");
+  fetch(API+"/categories").then(function(r){
+    console.log("[ADMIN] Categories response status:", r.status);
+    return r.json();
+  }).then(function(cats){
+    console.log("[ADMIN] Categories data:", cats);
     categories=cats||[];
     renderCatList();
-  }).catch(function(e){console.error("LOAD CATEGORIES ERROR:",e);});
+  }).catch(function(e){console.error("LOAD CATEGORIES ERROR:",e);toast("加载分类失败");});
 }
 function renderCatList(){
   var c=document.getElementById("cat-list");

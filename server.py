@@ -305,6 +305,7 @@ class H(BaseHTTPRequestHandler):
             self.send_json({"wechat_pay_qr": s.get("wechat_pay_qr",""), "alipay_qr": s.get("alipay_qr","")})
         elif path == "/api/categories":
             result = api_get("categories", "*", order="sort_order")
+            print(f"[CATEGORIES] api_get returned type={type(result).__name__} len={len(result) if isinstance(result,list) else 'N/A'}", flush=True)
             # Deduplicate by name: keep first occurrence (lowest id after sort_order)
             if isinstance(result, list):
                 seen = set()
@@ -315,6 +316,7 @@ class H(BaseHTTPRequestHandler):
                         seen.add(name)
                         deduped.append(c)
                 result = deduped
+                print(f"[CATEGORIES] After dedup: {len(result)} items", flush=True)
             self.send_json(result)
         elif path == "/api/orders":
             if not self.require_auth():
