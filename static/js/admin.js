@@ -42,20 +42,10 @@ function logout(){
 
 function loadData(){
   console.log("[ADMIN] Loading all data...");
-  Promise.all([fetch(API+"/products"),fetch(API+"/settings"),fetch(API+"/categories"),fetch(API+"/orders")])
-    .then(function(rs){return Promise.all(rs.map(function(r){return r.json();}));})
-    .then(function(data){
-      products=data[0]||[];
-      settings=data[1]||{};
-      categories=data[2]||[];
-      orders=data[3]||[];
-      console.log("[ADMIN] products:", products.length, "settings keys:", Object.keys(settings), "categories:", categories.length, "orders:", orders.length);
-      renderTable();
-      loadSettings();
-      loadCategories();
-      renderOrders();
-    })
-    .catch(function(e){console.error("LOAD DATA ERROR:",e);toast("加载数据失败");});
+  fetch(API+"/products").then(function(r){return r.json();}).then(function(d){products=d||[];console.log("[ADMIN] products:",products.length);renderTable();}).catch(function(e){console.error("products error:",e);});
+  fetch(API+"/settings").then(function(r){return r.json();}).then(function(d){settings=d||{};console.log("[ADMIN] settings keys:",Object.keys(settings));loadSettings();}).catch(function(e){console.error("settings error:",e);});
+  fetch(API+"/categories").then(function(r){return r.json();}).then(function(d){categories=d||[];console.log("[ADMIN] categories:",categories.length,categories);loadCategories();}).catch(function(e){console.error("categories error:",e);});
+  fetch(API+"/orders").then(function(r){return r.json();}).then(function(d){orders=d||[];console.log("[ADMIN] orders:",orders.length);renderOrders();}).catch(function(e){console.error("orders error:",e);});
 }
 
 function renderTable(){
