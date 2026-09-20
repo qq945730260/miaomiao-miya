@@ -126,6 +126,7 @@ def set_setting(key, value):
 
 def get_settings_all():
     result = api_get("settings", "key,value")
+    print(f"[SETTINGS] api_get returned type={type(result).__name__}", flush=True)
     defaults = {
         "site_title": "喵喵咪丫", "shop_description": "",
         "wechat_pay_qr": "", "alipay_qr": "", "wechat_qr": "", "shop_logo": ""
@@ -485,6 +486,7 @@ class H(BaseHTTPRequestHandler):
                     if ext not in {".jpg",".jpeg",".png",".gif",".webp",".svg"}:
                         return self.send_json({"error": "bad ext"}, 400)
                     saved_name = upload_image(data, fn)
+                    print(f"[UPLOAD] filename={fn} saved_name={saved_name!r}", flush=True)
                     if saved_name:
                         return self.send_json({"filename": saved_name})
                     else:
