@@ -49,10 +49,26 @@ CREATE TABLE IF NOT EXISTS settings (
 INSERT INTO settings (key, value) VALUES ('admin_username', 'xuxu') ON CONFLICT (key) DO NOTHING;
 INSERT INTO settings (key, value) VALUES ('admin_password', '5361172') ON CONFLICT (key) DO NOTHING;
 
--- Insert default categories if empty
-INSERT INTO categories (id, name, sort_order) VALUES
-  (1, '全部', 0),
-  (2, '宠物用品', 1),
-  (3, '金渐层猫', 2),
-  (4, '银渐层猫', 3)
-ON CONFLICT (id) DO NOTHING;
+-- Insert default categories if empty (no hardcoded IDs - let BIGSERIAL assign)
+-- Use INSERT...WHERE NOT EXISTS to avoid conflicts with existing data
+INSERT INTO categories (name, sort_order)
+SELECT '全部', 0
+WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '全部');
+
+INSERT INTO categories (name, sort_order)
+SELECT '宠物用品', 1
+WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '宠物用品');
+
+INSERT INTO categories (name, sort_order)
+SELECT '金渐层猫', 2
+WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '金渐层猫');
+
+INSERT INTO categories (name, sort_order)
+SELECT '银渐层猫', 3
+WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '银渐层猫');
+
+-- Deduplicate categories: keep lowest id for each name, delete duplicates
+DELETE FROM categories
+WHERE id NOT IN (
+  SELECT MIN(id) FROM categories GROUP BY name
+);
