@@ -179,10 +179,9 @@ def upload_image(file_bytes, filename):
             return safe_name
     except urllib.error.HTTPError as he:
         err_body = he.read().decode("utf-8", errors="replace") if hasattr(he, "read") else ""
-        print(f"Storage HTTP error {he.code}: {err_body[:200]}", flush=True)
+        print(f"Storage HTTP error {he.code}: {err_body[:300]}", flush=True)
     except Exception as e:
         print(f"Storage error: {e}", flush=True)
-        return None
     # Fallback to local upload
     try:
         ext2 = os.path.splitext(filename)[1].lower() or ".jpg"
@@ -194,7 +193,9 @@ def upload_image(file_bytes, filename):
         return sn
     except Exception as e2:
         print(f"Fallback error: {e2}", flush=True)
-        return secrets.token_hex(8) + ".jpg"
+        sn_fallback = secrets.token_hex(8) + ".jpg"
+        print(f"Final fallback to local: {sn_fallback}", flush=True)
+        return sn_fallback
 
 
 
