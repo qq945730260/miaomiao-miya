@@ -652,8 +652,13 @@ class H(BaseHTTPRequestHandler):
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)
             cid = qs.get("id", [None])[0]
+            print(f"[DELETE CATEGORY] id={cid}", flush=True)
             if cid:
-                api_delete("categories", {"id": cid})
+                result = api_delete("categories", {"id": cid})
+                print(f"[DELETE CATEGORY] result={result}", flush=True)
+                # Verify deletion
+                verify = api_get("categories", "id", {"id": cid})
+                print(f"[DELETE CATEGORY] verify remaining={verify}", flush=True)
             return self.send_json({"ok": True})
         elif path == "/api/products":
             if not self.require_auth():
