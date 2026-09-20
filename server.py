@@ -346,7 +346,7 @@ class H(BaseHTTPRequestHandler):
 
         if path == "/api/admin/login":
             try:
-                b = parse_body(self)
+                b = self.parse_body()
                 username = b.get("username","").strip()
                 password = b.get("password","").strip()
                 print(f"LOGIN ATTEMPT: user={username!r} pwd_len={len(password)}", flush=True)
@@ -380,7 +380,7 @@ class H(BaseHTTPRequestHandler):
         elif path == "/api/admin/change_password":
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)
-            b = parse_body(self)
+            b = self.parse_body()
             old_pwd = b.get("old_password","")
             new_pwd = b.get("new_password","")
             if not old_pwd or not new_pwd:
@@ -392,7 +392,7 @@ class H(BaseHTTPRequestHandler):
         elif path == "/api/categories":
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)
-            b = parse_body(self)
+            b = self.parse_body()
             name = b.get("name","").strip()
             if not name:
                 return self.send_json({"error": "missing name"}, 400)
@@ -407,7 +407,7 @@ class H(BaseHTTPRequestHandler):
         elif path == "/api/products":
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)
-            b = parse_body(self)
+            b = self.parse_body()
             # Check max
             all_prods = api_get("products", "id")
             if len(all_prods or []) >= MAX_PRODUCTS:
@@ -457,7 +457,7 @@ class H(BaseHTTPRequestHandler):
                     return self.send_json({"filename": saved_name})
             return self.send_json({"error": "no image"}, 400)
         elif path == "/api/order/create":
-            b = parse_body(self)
+            b = self.parse_body()
             email = (b.get("email") or "").strip().lower()
             password = (b.get("password") or "").strip()
             product_id = b.get("product_id")
@@ -496,7 +496,7 @@ class H(BaseHTTPRequestHandler):
             else:
                 self.send_json({"error": str(result)}, 500)
         elif path == "/api/order/query":
-            b = parse_body(self)
+            b = self.parse_body()
             email = (b.get("email") or "").strip().lower()
             password = (b.get("password") or "").strip()
             if not email or not password:
@@ -513,7 +513,7 @@ class H(BaseHTTPRequestHandler):
             else:
                 self.send_json({"error": "未找到订单，请确认邮箱和密码是否正确"}, 404)
         elif path == "/api/order/confirm":
-            b = parse_body(self)
+            b = self.parse_body()
             oid = b.get("order_id")
             if not oid:
                 return self.send_json({"error": "missing order_id"}, 400)
@@ -543,7 +543,7 @@ class H(BaseHTTPRequestHandler):
             pid = qs.get("id", [None])[0]
             if not pid:
                 return self.send_json({"error": "missing id"}, 400)
-            b = parse_body(self)
+            b = self.parse_body()
             rec = {
                 "name": b.get("name",""),
                 "title": (b.get("title","") or "").strip()[:60],
@@ -563,24 +563,24 @@ class H(BaseHTTPRequestHandler):
             else:
                 self.send_json({"error": str(result)}, 500)
         elif path == "/api/settings" and self.require_auth():
-            b = parse_body(self)
+            b = self.parse_body()
             for k, v in b.items():
                 set_setting(k, v)
             self.send_json({"ok": True})
         elif path == "/api/admin/payment_qrcodes" and self.require_auth():
-            b = parse_body(self)
+            b = self.parse_body()
             for k in ("wechat_pay_qr", "alipay_qr"):
                 if k in b:
                     set_setting(k, b[k])
             self.send_json({"ok": True})
         elif path == "/api/categories" and self.require_auth():
-            b = parse_body(self)
+            b = self.parse_body()
             cats = b.get("categories", [])
             for c in cats:
                 api_update("categories", {"name": c.get("name",""), "sort_order": c.get("sort_order", 0)}, {"id": str(c["id"])})
             self.send_json({"ok": True})
         elif path == "/api/admin/order/confirm" and self.require_auth():
-            b = parse_body(self)
+            b = self.parse_body()
             oid = b.get("order_id")
             if not oid:
                 return self.send_json({"error": "missing order_id"}, 400)
