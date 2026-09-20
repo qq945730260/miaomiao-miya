@@ -1,4 +1,4 @@
-"""Pet Shop Server V6 - Supabase via direct REST API (no SDK dependency)"""
+﻿"""Pet Shop Server V6 - Supabase via direct REST API (no SDK dependency)"""
 import json, os, secrets, time, re, base64
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -40,7 +40,7 @@ def api_insert(table, data):
     """INSERT into Supabase REST API."""
     if not db_up():
         return None
-    url = f"{SUPABASE_URL}/rest/v1/{table}?return=representation"
+    url = f"{SUPABASE_URL}/rest/v1/{table}?select=*"
     return _api_call("POST", url, data)
 
 def api_update(table, data, filters):
@@ -49,7 +49,7 @@ def api_update(table, data, filters):
         return None
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     for k, v in filters.items():
-        url += f"?{k}=eq.{v}"
+        url += f"&{k}=eq.{v}"
     return _api_call("PATCH", url, data)
 
 def api_delete(table, filters):
@@ -58,7 +58,7 @@ def api_delete(table, filters):
         return None
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     for k, v in filters.items():
-        url += f"?{k}=eq.{v}"
+        url += f"&{k}=eq.{v}"
     return _api_call("DELETE", url, None)
 
 def _api_call(method, url, body=None):
