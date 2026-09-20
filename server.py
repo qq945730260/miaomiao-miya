@@ -148,7 +148,6 @@ def clean_expired_orders():
 def upload_image(file_bytes, filename):
     """Upload to Supabase Storage, return filename."""
     if not SUPABASE_SERVICE_KEY or not SUPABASE_URL:
-        # Fallback to local
         ext = os.path.splitext(filename)[1].lower() or ".jpg"
         sn = secrets.token_hex(8) + ext
         os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -158,7 +157,6 @@ def upload_image(file_bytes, filename):
     try:
         ext = os.path.splitext(filename)[1].lower() or ".jpg"
         safe_name = secrets.token_hex(8) + ext
-        # Use Supabase Storage v2 API with service role
         headers = {
             "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
             "apikey": SUPABASE_SERVICE_KEY,
@@ -170,14 +168,16 @@ def upload_image(file_bytes, filename):
             headers=headers,
             method="PUT"
         )
-                print(f"Storage upload status: {resp.status}", flush=True)
-                return safe_name
-        except urllib.error.HTTPError as he:
-            err_body = he.read().decode("utf-8", errors="replace") if hasattr(he, "read") else ""
-            print(f"Storage HTTP error {he.code}: {err_body[:200]}", flush=True)
-        except Exception as e:
-            print(f"Storage error: {e}", flush=True)
-        # Fallback to local upload
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            print(f"Storage upload status: {resp.status}", flush=True)
+            return safe_name
+    except urllib.error.HTTPError as he:
+        err_body = he.read().decode("utf-8", errors="replace") if hasattr(he, "read") else ""
+        print(f"Storage HTTP error {he.code}: {err_body[:200]}", flush=True)
+    except Exception as e:
+        print(f"Storage error: {e}", flush=True)
+    # Fallback to local upload
+    try:
         ext2 = os.path.splitext(filename)[1].lower() or ".jpg"
         sn = secrets.token_hex(8) + ext2
         os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -185,15 +185,11 @@ def upload_image(file_bytes, filename):
             f.write(file_bytes.rstrip(b"\r\n"))
         print(f"Fallback: saved locally as {sn}", flush=True)
         return sn
-    except Exception as e:
-        print(f"Upload error: {e}", flush=True)
-        ext = os.path.splitext(filename)[1].lower() or ".jpg"
-        sn = secrets.token_hex(8) + ext
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        with open(os.path.join(UPLOAD_DIR, sn), "wb") as f:
-            f.write(file_bytes.rstrip(b"\r\n"))
-        return sn
-        return sn
+    except Exception as e2:
+        print(f"Fallback error: {e2}", flush=True)
+        return secrets.token_hex(8) + ".jpg"
+
+
 
 
 class H(BaseHTTPRequestHandler):
