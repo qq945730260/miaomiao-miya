@@ -302,7 +302,17 @@ class H(BaseHTTPRequestHandler):
             self.send_json({"wechat_pay_qr": s.get("wechat_pay_qr",""), "alipay_qr": s.get("alipay_qr","")})
         elif path == "/api/categories":
             result = api_get("categories", "*", order="sort_order")
-            self.send_json(result if isinstance(result, list) else [])
+            # Deduplicate by name: keep first occurrence (lowest id after sort_order)
+            if isinstance(result, list):
+                seen = set()
+                deduped = []
+                for c in result:
+                    name = c.get("name", "")
+                    if name not in seen:
+                        seen.add(name)
+                        deduped.append(c)
+                result = deduped
+            self.send_json(result)
         elif path == "/api/orders":
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)
