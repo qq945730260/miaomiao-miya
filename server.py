@@ -34,7 +34,13 @@ def api_get(table, columns="*", filters=None, order=None, limit=None):
         url += f"&order={order}"
     if limit:
         url += f"&limit={limit}"
-    return _api_call("GET", url)
+    result = _api_call("GET", url)
+    if isinstance(result, dict) and "error" in result:
+        print(f"api_get {table} ERROR: {result['error'][:100]}", flush=True)
+    else:
+        cnt = len(result) if isinstance(result, list) else 'non-list'
+        print(f"api_get {table}: OK, got {cnt} items", flush=True)
+    return result
 
 def api_insert(table, data):
     """INSERT into Supabase REST API."""
@@ -272,9 +278,6 @@ class H(BaseHTTPRequestHandler):
             if BLOCKED_DOMAIN and host == BLOCKED_DOMAIN:
                 return self.send_json({"error": "forbidden"}, 403)
             self.serve_file(os.path.join(STATIC_DIR, "admin.html"), "text/html; charset=utf-8")
-        elif path == "/api/products":
-            result = api_get("products", "*", order="id")
-            self.send_json(result if isinstance(result, list) else [])
         elif path == "/api/products" and "id" in qs:
             result = api_get("products", "*", {"id": qs["id"][0]})
             prod = result[0] if isinstance(result, list) and result else None
@@ -282,6 +285,9 @@ class H(BaseHTTPRequestHandler):
                 self.send_json(prod)
             else:
                 self.send_json({}, 404)
+        elif path == "/api/products":
+            result = api_get("products", "*", order="id")
+            self.send_json(result if isinstance(result, list) else [])
         elif path == "/api/settings":
             self.send_json(get_settings_all())
         elif path == "/api/admin/check":
@@ -338,6 +344,8 @@ class H(BaseHTTPRequestHandler):
                 "order_count": order_count,
                 "supabase_url_set": bool(SUPABASE_URL),
                 "supabase_key_set": bool(SUPABASE_ANON_KEY),
+                "supabase_svc_set": bool(SUPABASE_SERVICE_KEY),
+                "bucket": SUPABASE_BUCKET,
             })
         elif path.startswith("/static/"):
             self.serve_file(os.path.join(BASE_DIR, path.lstrip("/")))
