@@ -168,10 +168,8 @@ def upload_image(file_bytes, filename):
             f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{safe_name}",
             data=file_bytes.rstrip(b"\r\n"),
             headers=headers,
-            method="POST"
+            method="PUT"
         )
-        try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
                 print(f"Storage upload status: {resp.status}", flush=True)
                 return safe_name
         except urllib.error.HTTPError as he:
@@ -413,18 +411,14 @@ class H(BaseHTTPRequestHandler):
             name = b.get("name","").strip()
             if not name:
                 return self.send_json({"error": "missing name"}, 400)
-            all_cats = api_get("categories", "id")
-            max_id = max([c["id"] for c in (all_cats or [])] or [0])
-            next_id = max_id + 1
-            rec = {"name": name, "sort_order": b.get("sort_order", 0), "id": next_id}
-            result = api_insert("categories", rec)
+            result = api_insert("categories", {"name": name, "sort_order": b.get("sort_order", 0)})
             print(f"CATEGORY INSERT result: {result}", flush=True)
             if isinstance(result, list) and result:
                 self.send_json({"id": result[0]["id"], "name": name, "sort_order": b.get("sort_order", 0)}, 201)
             elif isinstance(result, dict) and "error" in result:
                 self.send_json({"error": result["error"]}, 500)
             else:
-                self.send_json({"id": next_id, "name": name, "sort_order": b.get("sort_order", 0)}, 201)
+                self.send_json({"error": "insert failed"}, 500)
         elif path == "/api/products":
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)

@@ -202,7 +202,7 @@ function saveSettings(){
   };
   fetch(API+"/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
     .then(function(r){return r.json();})
-    .then(function(d){toast(d.ok?"设置已保存":"保存失败");})
+    .then(function(d){if(d.ok){toast("设置已保存");loadData();}else toast(d.error||"保存失败");})
     .catch(function(){toast("网络错误");});
 }
 
