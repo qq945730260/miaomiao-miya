@@ -170,7 +170,7 @@ function deleteCategory(id){
   if(!confirm("确定删除该分类？关联商品不会被删除。"))return;
   fetch(API+"/categories?id="+id,{method:"DELETE"})
     .then(function(r){return r.json();})
-    .then(function(d){if(d.ok){loadCategories();toast("已删除");}else toast(d.error||"删除失败");})
+    .then(function(d){if(d.ok){categories=categories.filter(function(c){return c.id!==id;});loadCategories();toast("已删除");}else toast(d.error||"删除失败");})
     .catch(function(){toast("网络错误");});
 }
 function saveCategories(){
