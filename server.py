@@ -182,6 +182,7 @@ def upload_image(file_bytes, filename):
         print(f"Storage HTTP error {he.code}: {err_body[:200]}", flush=True)
     except Exception as e:
         print(f"Storage error: {e}", flush=True)
+        return None
     # Fallback to local upload
     try:
         ext2 = os.path.splitext(filename)[1].lower() or ".jpg"
@@ -483,7 +484,16 @@ class H(BaseHTTPRequestHandler):
                     if ext not in {".jpg",".jpeg",".png",".gif",".webp",".svg"}:
                         return self.send_json({"error": "bad ext"}, 400)
                     saved_name = upload_image(data, fn)
-                    return self.send_json({"filename": saved_name})
+                    if saved_name:
+                        return self.send_json({"filename": saved_name})
+                    else:
+                        ext = os.path.splitext(fn)[1].lower() or ".jpg"
+                        sn = secrets.token_hex(8) + ext
+                        os.makedirs(UPLOAD_DIR, exist_ok=True)
+                        with open(os.path.join(UPLOAD_DIR, sn), "wb") as f:
+                            f.write(data)
+                        print(f"Fallback saved: {sn}", flush=True)
+                        return self.send_json({"filename": sn})
             return self.send_json({"error": "no image"}, 400)
         elif path == "/api/order/create":
             b = self.parse_body()
