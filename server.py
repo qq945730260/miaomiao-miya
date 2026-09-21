@@ -701,7 +701,6 @@ class H(BaseHTTPRequestHandler):
     def do_DELETE(self):
         self.request_method = "DELETE"
         p = urlparse(self.path)
-        self.request_method = "DELETE"
         if path == "/api/categories":
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)
