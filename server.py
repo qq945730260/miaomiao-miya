@@ -78,9 +78,10 @@ def _api_call(method, url, body=None):
         headers = {
             "apikey": SUPABASE_ANON_KEY,
             "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
-            "Content-Type": "application/json",
-            "Prefer": "return=representation" if method in ("POST", "PATCH") else "",
         }
+        if body is not None:
+            headers["Content-Type"] = "application/json"
+            headers["Prefer"] = "return=representation" if method in ("POST", "PATCH") else ""
         if SUPABASE_SERVICE_KEY:
             headers["Authorization"] = f"Bearer {SUPABASE_SERVICE_KEY}"
             headers["apikey"] = SUPABASE_SERVICE_KEY
@@ -697,6 +698,8 @@ class H(BaseHTTPRequestHandler):
                     # Verify deletion
                     verify = api_get("categories", "id", {"id": cid})
                     print(f"[DELETE CATEGORY] verify remaining={verify}", flush=True)
+                    if isinstance(verify, list) and len(verify) > 0:
+                        return self.send_json({"error": "delete failed: category still exists"}, 500)
                 except Exception as e:
                     print(f"[DELETE CATEGORY] Exception: {e}", flush=True)
                     return self.send_json({"error": str(e)}, 500)
