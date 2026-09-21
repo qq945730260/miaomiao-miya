@@ -138,7 +138,15 @@ def get_settings_all():
     if not isinstance(result, list):
         return defaults
     data = {row["key"]: row["value"] for row in result if isinstance(row, dict)}
+    # Convert image paths to full URLs
+    for key in ["shop_logo", "wechat_qr", "wechat_pay_qr", "alipay_qr"]:
+        if data.get(key):
+            data[key] = get_storage_url(data[key])
     data.update(defaults)
+    # Re-apply full URLs after defaults
+    for key in ["shop_logo", "wechat_qr", "wechat_pay_qr", "alipay_qr"]:
+        if data.get(key):
+            data[key] = get_storage_url(data[key])
     return data
 
 def gen_order_number():
@@ -349,6 +357,12 @@ class H(BaseHTTPRequestHandler):
         elif path == "/uploads":
             files = [f for f in os.listdir(UPLOAD_DIR) if not f.startswith(".") and not f.startswith("session_")] if os.path.exists(UPLOAD_DIR) else []
             self.send_json(files)
+        elif path == "/api/get-image-url":
+            filename = qs.get("filename", [None])[0]
+            if filename:
+                self.send_json({"url": get_storage_url(filename)})
+            else:
+                self.send_json({"error": "missing filename"}, 400)
         elif path == "/api/debug":
             upload_count = len([f for f in os.listdir(UPLOAD_DIR) if not f.startswith(".") and not f.startswith("session_")]) if os.path.exists(UPLOAD_DIR) else 0
             test_result = api_get("settings", "key,value")
@@ -694,6 +708,16 @@ class H(BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
+
+def get_storage_url(filename):
+    """Get public URL for a Supabase Storage file."""
+    if not filename or filename == "placeholder.jpg":
+        return ""
+    # If it's already a full URL, return as-is
+    if filename.startswith("http"):
+        return filename
+    # Return Supabase Storage public URL
+    return f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{filename}"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
