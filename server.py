@@ -179,7 +179,7 @@ def upload_image(file_bytes, filename):
         }
         req = urllib.request.Request(
             f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{safe_name}",
-            data=file_bytes.rstrip(b"\r\n"),
+            data=file_bytes,
             headers=headers,
             method="PUT"
         )
@@ -191,20 +191,20 @@ def upload_image(file_bytes, filename):
         print(f"Storage HTTP error {he.code}: {err_body[:300]}", flush=True)
     except Exception as e:
         print(f"Storage error: {e}", flush=True)
-    # Fallback to local upload
+    # Fallback to local upload (must work even if Storage fails)
     try:
         ext2 = os.path.splitext(filename)[1].lower() or ".jpg"
         sn = secrets.token_hex(8) + ext2
         os.makedirs(UPLOAD_DIR, exist_ok=True)
         with open(os.path.join(UPLOAD_DIR, sn), "wb") as f:
-            f.write(file_bytes.rstrip(b"\r\n"))
-        print(f"Fallback: saved locally as {sn}", flush=True)
+            f.write(file_bytes)
+        print(f"[STORAGE] Fallback: saved locally as {sn}", flush=True)
         return sn
     except Exception as e2:
-        print(f"Fallback error: {e2}", flush=True)
-        sn_fallback = secrets.token_hex(8) + ".jpg"
-        print(f"Final fallback to local: {sn_fallback}", flush=True)
-        return sn_fallback
+        print(f"[STORAGE] Fallback error: {e2}", flush=True)
+        # Last resort - just return a placeholder
+        print(f"[STORAGE] WARNING: All uploads failed! Images will be broken.", flush=True)
+        return "placeholder.jpg"
 
 
 
