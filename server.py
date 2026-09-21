@@ -98,9 +98,7 @@ def auto_commit():
     try:
         r = subprocess.run(["git", "-c", "safe.directory=*", "add", "-A", "data/", "uploads/"],
             capture_output=True, timeout=10, cwd=BASE_DIR)
-        # Also commit uploads
-        subprocess.run(["git", "-c", "safe.directory=*", "add", "-A", "uploads/"],
-            capture_output=True, timeout=10, cwd=BASE_DIR)
+
         r2 = subprocess.run(["git", "-c", "safe.directory=*", "commit", "-q", "--allow-empty", "-m", "auto-commit data"],
             capture_output=True, timeout=10, cwd=BASE_DIR)
         if b"nothing" not in r2.stdout and b"nothing" not in r2.stderr:
@@ -112,13 +110,13 @@ def auto_commit():
             try:
                 r3 = subprocess.run(["git", "-c", "safe.directory=*",
                     "-c", "credential.helper=store --file=" + cred_file,
-                    "push", "origin", "v5"],
+                    "push", "origin", "v6"],
                     capture_output=True, timeout=30, cwd=BASE_DIR)
             finally:
                 try: os.remove(cred_file)
                 except: pass
                 if r3.returncode == 0:
-                    log_sync("OK: pushed to v5")
+                    log_sync("OK: pushed to v6")
                 else:
                     err = r3.stderr.decode("utf-8", errors="replace")[:300]
                     log_sync("FAIL: " + err)
