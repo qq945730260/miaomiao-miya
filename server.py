@@ -165,54 +165,51 @@ def clean_expired_orders():
     api_delete("orders", {"created_at": f"lt.{cutoff}"})
 
 def upload_image(file_bytes, filename):
-    """Upload to Supabase Storage, return filename."""
-    print(f"[STORAGE] Upload started: {filename}", flush=True)
-    print(f"[STORAGE] Service key: {bool(SUPABASE_SERVICE_KEY)}, URL: {bool(SUPABASE_URL)}, Bucket: {SUPABASE_BUCKET}", flush=True)
-    if not SUPABASE_SERVICE_KEY or not SUPABASE_URL:
-        print(f"[STORAGE] No service key/URL, using local fallback", flush=True)
+    """Upload to Supabase Storage, return full public URL or filename."""
+    print(f"[UPLOAD] Starting upload: {filename}", flush=True)
+    print(f"[UPLOAD] Config: URL={bool(SUPABASE_URL)}, Key={bool(SUPABASE_SERVICE_KEY)}, Bucket={SUPABASE_BUCKET}", flush=True)
+    
+    # Always use Supabase Storage for persistence
+    if SUPABASE_SERVICE_KEY and SUPABASE_URL and SUPABASE_BUCKET:
+        try:
+            ext = os.path.splitext(filename)[1].lower() or ".jpg"
+            safe_name = secrets.token_hex(8) + ext
+            headers = {
+                "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                "apikey": SUPABASE_SERVICE_KEY,
+                "content-type": "application/octet-stream",
+                "x-upsert": "true",
+            }
+            url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{safe_name}"
+            req = urllib.request.Request(url, data=file_bytes, headers=headers, method="PUT")
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                status = resp.status
+                print(f"[UPLOAD] Storage PUT status: {status}", flush=True)
+                if status in (200, 201, 204):
+                    # Return the public URL
+                    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{safe_name}"
+                    print(f"[UPLOAD] Success! Public URL: {public_url}", flush=True)
+                    return public_url
+                else:
+                    print(f"[UPLOAD] Unexpected status: {status}", flush=True)
+        except urllib.error.HTTPError as he:
+            err_body = he.read().decode("utf-8", errors="replace") if hasattr(he, "read") else ""
+            print(f"[UPLOAD] HTTP Error {he.code}: {err_body[:500]}", flush=True)
+        except Exception as e:
+            print(f"[UPLOAD] Exception: {e}", flush=True)
+    
+    # Fallback: save locally (will be lost on restart, but better than nothing)
+    try:
         ext = os.path.splitext(filename)[1].lower() or ".jpg"
         sn = secrets.token_hex(8) + ext
         os.makedirs(UPLOAD_DIR, exist_ok=True)
         with open(os.path.join(UPLOAD_DIR, sn), "wb") as f:
             f.write(file_bytes)
-        print(f"[STORAGE] Saved locally: {sn}", flush=True)
+        print(f"[UPLOAD] Saved locally: {sn}", flush=True)
         return sn
-    try:
-        ext = os.path.splitext(filename)[1].lower() or ".jpg"
-        safe_name = secrets.token_hex(8) + ext
-        headers = {
-            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-            "apikey": SUPABASE_SERVICE_KEY,
-            "content-type": "application/octet-stream",
-        }
-        req = urllib.request.Request(
-            f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{safe_name}",
-            data=file_bytes,
-            headers=headers,
-            method="PUT"
-        )
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            print(f"Storage upload status: {resp.status}", flush=True)
-            return safe_name
-    except urllib.error.HTTPError as he:
-        err_body = he.read().decode("utf-8", errors="replace") if hasattr(he, "read") else ""
-        print(f"Storage HTTP error {he.code}: {err_body[:300]}", flush=True)
     except Exception as e:
-        print(f"Storage error: {e}", flush=True)
-    # Fallback to local upload (must work even if Storage fails)
-    try:
-        ext2 = os.path.splitext(filename)[1].lower() or ".jpg"
-        sn = secrets.token_hex(8) + ext2
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        with open(os.path.join(UPLOAD_DIR, sn), "wb") as f:
-            f.write(file_bytes)
-        print(f"[STORAGE] Fallback: saved locally as {sn}", flush=True)
-        return sn
-    except Exception as e2:
-        print(f"[STORAGE] Fallback error: {e2}", flush=True)
-        # Last resort - just return a placeholder
-        print(f"[STORAGE] WARNING: All uploads failed! Images will be broken.", flush=True)
-        return "placeholder.jpg"
+        print(f"[UPLOAD] Local save failed: {e}", flush=True)
+        return ""
 
 
 
