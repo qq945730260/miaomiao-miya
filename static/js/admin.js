@@ -123,10 +123,10 @@ function loadSettings(){
   document.getElementById("form-site_title").value=settings.site_title||"";
   document.getElementById("form-shop_description").value=settings.shop_description||"";
   document.getElementById("form-wechat_qr").value=settings.wechat_qr||"";
-  if(settings.wechat_qr){var q=document.getElementById("settings-qr-preview");q.src="/uploads/"+settings.wechat_qr;q.style.display="";}
-  if(settings.wechat_pay_qr){var w=document.getElementById("wechat-pay-preview");w.src="/uploads/"+settings.wechat_pay_qr;w.style.display="";document.getElementById("form-wechat_pay_qr").value=settings.wechat_pay_qr;}
-  if(settings.alipay_qr){var a=document.getElementById("alipay-pay-preview");a.src="/uploads/"+settings.alipay_qr;a.style.display="";document.getElementById("form-alipay_qr").value=settings.alipay_qr;}
-  if(settings.shop_logo){var l=document.getElementById("shop-logo-preview");l.src="/uploads/"+settings.shop_logo;l.style.display="";document.getElementById("form-shop_logo").value=settings.shop_logo;}
+  if(settings.wechat_qr){var q=document.getElementById("settings-qr-preview");q.src=settings.wechat_qr.startsWith("http")?settings.wechat_qr:"/uploads/"+settings.wechat_qr;q.style.display="";}
+  if(settings.wechat_pay_qr){var w=document.getElementById("wechat-pay-preview");w.src=settings.wechat_pay_qr.startsWith("http")?settings.wechat_pay_qr:"/uploads/"+settings.wechat_pay_qr;w.style.display="";document.getElementById("form-wechat_pay_qr").value=settings.wechat_pay_qr;}
+  if(settings.alipay_qr){var a=document.getElementById("alipay-pay-preview");a.src=settings.alipay_qr.startsWith("http")?settings.alipay_qr:"/uploads/"+settings.alipay_qr;a.style.display="";document.getElementById("form-alipay_qr").value=settings.alipay_qr;}
+  if(settings.shop_logo){var l=document.getElementById("shop-logo-preview");l.src=settings.shop_logo.startsWith("http")?settings.shop_logo:"/uploads/"+settings.shop_logo;l.style.display="";document.getElementById("form-shop_logo").value=settings.shop_logo;}
 }
 
 function loadCategories(){
@@ -209,7 +209,7 @@ function uploadShopLogo(e){
   fetch(API+"/upload",{method:"POST",body:fd})
     .then(function(r){return r.json();})
     .then(function(d){
-      if(d.filename){document.getElementById("form-shop_logo").value=d.filename;document.getElementById("shop-logo-preview").src="/uploads/"+d.filename;document.getElementById("shop-logo-preview").style.display="";}
+      if(d.filename){document.getElementById("form-shop_logo").value=d.filename;document.getElementById("shop-logo-preview").src=d.filename.startsWith("http")?d.filename:"/uploads/"+d.filename;document.getElementById("shop-logo-preview").style.display="";}
     })
     .catch(function(){toast("上传失败");});
 }

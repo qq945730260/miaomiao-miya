@@ -19,7 +19,7 @@ function loadSettings(){
     var ann=document.getElementById('hero-announcement');
     if(ann&&s.shop_description){ann.innerHTML=esc(s.shop_description).replace(/\n/g,'<br>');}
     var img=document.getElementById('shop-logo-img');
-    if(img&&s.shop_logo){img.src='/uploads/'+s.shop_logo;img.style.display='inline-block';}
+    if(img&&s.shop_logo){img.src=s.shop_logo.startsWith("http")?s.shop_logo:'/uploads/'+s.shop_logo;img.style.display='inline-block';}
     else if(img){img.style.display='none';}
   }).catch(function(e){console.error(e);});
 }
@@ -108,7 +108,7 @@ function buildCard(p){
   var stockClass=p.stock<3?' low':'';
   var html='';
   html+='<div class="card" onclick="goProduct('+p.id+')">';
-  html+='<img class="card-img" src="/uploads/'+esc(p.image)+'" alt="'+esc(p.title||p.name)+'" onerror="this.src=\'/uploads/placeholder.jpg\'">';
+  html+='<img class="card-img" src="'+(p.image.startsWith('http')?p.image:'/uploads/'+esc(p.image))+'" alt="'+esc(p.title||p.name)+'" onerror="this.src=\'/uploads/placeholder.jpg\'">';
   html+='<div class="card-body">';
   html+='<div class="card-cat">'+esc(p.category)+'</div>';
   html+='<div class="card-name">'+esc(p.title||p.name)+'</div>';
@@ -125,7 +125,7 @@ function showWechatQR(){
   var modal=document.getElementById('qr-modal');
   var qrImg=document.getElementById('qr-img');
   var qrPh=document.getElementById('qr-placeholder');
-  if(siteSettings.wechat_qr){qrImg.src='/uploads/'+siteSettings.wechat_qr;qrImg.style.display='';qrPh.style.display='none';}
+  if(siteSettings.wechat_qr){qrImg.src=siteSettings.wechat_qr.startsWith("http")?siteSettings.wechat_qr:'/uploads/'+siteSettings.wechat_qr;qrImg.style.display='';qrPh.style.display='none';}
   else{qrImg.style.display='none';qrPh.style.display='';}
   modal.classList.add('open');
 }
