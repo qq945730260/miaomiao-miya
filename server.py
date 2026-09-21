@@ -636,7 +636,6 @@ class H(BaseHTTPRequestHandler):
     def do_PUT(self):
         self.request_method = "PUT"
         p = urlparse(self.path)
-        path = p.path.rstrip("/") or "/"
         qs = parse_qs(p.query)
 
         if path == "/api/products" and self.require_auth():
@@ -703,7 +702,6 @@ class H(BaseHTTPRequestHandler):
         self.request_method = "DELETE"
         p = urlparse(self.path)
         self.request_method = "DELETE"
-        qs = parse_qs(p.query)
 
         if path == "/api/categories":
             if not self.require_auth():
