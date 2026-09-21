@@ -343,23 +343,35 @@ class H(BaseHTTPRequestHandler):
         elif path == "/api/orders":
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)
-            clean_expired_orders()
-            orders = api_get("orders", "*", order="created_at desc")
-            products = {p["id"]: p for p in (api_get("products", "id,name,title,image") or [])}
-            result = []
-            for o in (orders or []):
-                prod = products.get(o["product_id"], {})
-                result.append({**o, "product_name": prod.get("name",""),
-                               "product_title": prod.get("title",""),
-                               "product_image": prod.get("image","")})
-            self.send_json(result)
+            try:
+                clean_expired_orders()
+                orders = api_get("orders", "*", order="created_at desc")
+                products_result = api_get("products", "id,name,title,image")
+                products = {str(p["id"]): p for p in (products_result or [])}
+                result = []
+                for o in (orders or []):
+                    prod = products.get(str(o.get("product_id", "")), {})
+                    result.append({
+                        **o,
+                        "product_name": prod.get("name",""),
+                        "product_title": prod.get("title",""),
+                        "product_image": get_storage_url(prod.get("image",""))
+                    })
+                self.send_json(result)
+            except Exception as e:
+                print(f"[ORDERS] Error: {e}", flush=True)
+                self.send_json([])
         elif path == "/api/sold":
-            result = api_get("orders", "product_id,qty", {"status": "completed"})
-            sold = {}
-            for o in (result or []):
-                pid = o.get("product_id")
-                sold[pid] = sold.get(pid, 0) + o.get("qty", 1)
-            self.send_json(sold)
+            try:
+                result = api_get("orders", "product_id,qty", {"status": "completed"})
+                sold = {}
+                for o in (result or []):
+                    pid = o.get("product_id")
+                    sold[pid] = sold.get(pid, 0) + o.get("qty", 1)
+                self.send_json(sold)
+            except Exception as e:
+                print(f"[SOLD] Error: {e}", flush=True)
+                self.send_json({})
         elif path == "/uploads":
             files = [f for f in os.listdir(UPLOAD_DIR) if not f.startswith(".") and not f.startswith("session_")] if os.path.exists(UPLOAD_DIR) else []
             self.send_json(files)
