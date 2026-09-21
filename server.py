@@ -61,11 +61,15 @@ def api_update(table, data, filters):
 def api_delete(table, filters):
     """DELETE from Supabase REST API."""
     if not db_up():
+        print(f"[DELETE] DB not up", flush=True)
         return None
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     for k, v in filters.items():
         url += f"&{k}=eq.{v}"
-    return _api_call("DELETE", url, None)
+    print(f"[DELETE] Calling {url}", flush=True)
+    result = _api_call("DELETE", url, None)
+    print(f"[DELETE] Result: {result}", flush=True)
+    return result
 
 def _api_call(method, url, body=None):
     """Execute a Supabase REST API call."""
@@ -654,11 +658,15 @@ class H(BaseHTTPRequestHandler):
             cid = qs.get("id", [None])[0]
             print(f"[DELETE CATEGORY] id={cid}", flush=True)
             if cid:
-                result = api_delete("categories", {"id": cid})
-                print(f"[DELETE CATEGORY] result={result}", flush=True)
-                # Verify deletion
-                verify = api_get("categories", "id", {"id": cid})
-                print(f"[DELETE CATEGORY] verify remaining={verify}", flush=True)
+                try:
+                    result = api_delete("categories", {"id": cid})
+                    print(f"[DELETE CATEGORY] result={result}", flush=True)
+                    # Verify deletion
+                    verify = api_get("categories", "id", {"id": cid})
+                    print(f"[DELETE CATEGORY] verify remaining={verify}", flush=True)
+                except Exception as e:
+                    print(f"[DELETE CATEGORY] Exception: {e}", flush=True)
+                    return self.send_json({"error": str(e)}, 500)
             return self.send_json({"ok": True})
         elif path == "/api/products":
             if not self.require_auth():
