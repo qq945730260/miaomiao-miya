@@ -306,6 +306,12 @@ class H(BaseHTTPRequestHandler):
                 self.send_json({}, 404)
         elif path == "/api/products":
             result = api_get("products", "*", order="id")
+            if isinstance(result, list):
+                for p in result:
+                    if p.get("image"):
+                        p["image"] = get_storage_url(p["image"])
+                    if p.get("detail_image"):
+                        p["detail_image"] = get_storage_url(p["detail_image"])
             self.send_json(result if isinstance(result, list) else [])
         elif path == "/api/settings":
             self.send_json(get_settings_all())
