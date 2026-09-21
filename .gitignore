@@ -1,8 +1,6 @@
 __pycache__/
 *.pyc
 *.pyo
-data/
-uploads/
 .env
 *.pyc
 __pycache__/

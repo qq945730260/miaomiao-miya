@@ -1,0 +1,17 @@
+{
+  "products": [],
+  "categories": [],
+  "orders": [],
+  "settings": {
+    "site_title": "喵喵咪丫",
+    "shop_description": "",
+    "wechat_pay_qr": "",
+    "alipay_qr": "",
+    "wechat_qr": "",
+    "shop_logo": ""
+  },
+  "admin": {
+    "username": "xuxu",
+    "password": "5361172"
+  }
+}

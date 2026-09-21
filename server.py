@@ -1,4 +1,4 @@
-"""Pet Shop Server V6 - JSON storage for persistence"""
+﻿"""Pet Shop Server V6 - JSON storage for persistence"""
 import json, os, secrets, time, re, subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -396,6 +396,14 @@ class H(BaseHTTPRequestHandler):
                     auto_commit()
                     return send_json(self, {"filename": sn})
             send_json(self, {"error": "no image"}, 400)
+        elif path == "/api/settings" and require_auth(self):
+            b = parse_body(self)
+            settings = store.get("settings", {})
+            for k, v in b.items():
+                settings[k] = str(v)
+            store["settings"] = settings
+            save_store(store)
+            send_json(self, {"ok": True})
         elif path == "/api/order/create":
             b = parse_body(self)
             email = (b.get("email") or "").strip().lower()
@@ -616,8 +624,8 @@ def main():
     # Load store data
     store = load_store()
     
-    # Fallback: if no data, use embedded defaults
-    if not store.get("products") or not store.get("categories"):
+    # Fallback: only use defaults on truly first run (no store file exists)
+    if not os.path.exists(STORE_FILE):
         print("WARNING: No data found, using embedded defaults", flush=True)
         store = {
             "products": [
