@@ -314,11 +314,6 @@ class H(BaseHTTPRequestHandler):
             self.send_json(result if isinstance(result, list) else [])
         elif path == "/api/settings" and self.request_method == "GET":
             self.send_json(get_settings_all())
-        elif path == "/api/settings" and self.require_auth():
-            b = self.parse_body()
-            for k, v in b.items():
-                set_setting(k, v)
-            self.send_json({"ok": True})
         elif path == "/api/admin/check":
             self.send_json({"auth": self.require_auth()})
         elif path == "/api/admin/test_login":
@@ -520,6 +515,11 @@ class H(BaseHTTPRequestHandler):
                 self.send_json(new_rec, 201)
             else:
                 self.send_json({"error": str(result)}, 500)
+        elif path == "/api/settings" and self.require_auth():
+            b = self.parse_body()
+            for k, v in b.items():
+                set_setting(k, v)
+            self.send_json({"ok": True})
         elif path == "/api/upload":
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)
@@ -661,11 +661,6 @@ class H(BaseHTTPRequestHandler):
                 self.send_json(result[0])
             else:
                 self.send_json({"error": str(result)}, 500)
-        elif path == "/api/settings" and self.require_auth():
-            b = self.parse_body()
-            for k, v in b.items():
-                set_setting(k, v)
-            self.send_json({"ok": True})
         elif path == "/api/admin/payment_qrcodes" and self.require_auth():
             b = self.parse_body()
             for k in ("wechat_pay_qr", "alipay_qr"):
