@@ -311,8 +311,13 @@ class H(BaseHTTPRequestHandler):
                     if p.get("detail_image"):
                         p["detail_image"] = get_storage_url(p["detail_image"])
             self.send_json(result if isinstance(result, list) else [])
-        elif path == "/api/settings":
+        elif path == "/api/settings" and self.request_method == "GET":
             self.send_json(get_settings_all())
+        elif path == "/api/settings" and self.require_auth():
+            b = self.parse_body()
+            for k, v in b.items():
+                set_setting(k, v)
+            self.send_json({"ok": True})
         elif path == "/api/admin/check":
             self.send_json({"auth": self.require_auth()})
         elif path == "/api/admin/test_login":
@@ -338,6 +343,16 @@ class H(BaseHTTPRequestHandler):
                 result = deduped
                 print(f"[CATEGORIES] After dedup: {len(result)} items", flush=True)
             self.send_json(result)
+        elif path == "/api/categories/batch" and self.require_auth():
+            b = self.parse_body()
+            cats = b if isinstance(b, list) else b.get("categories", [])
+            for cat in cats:
+                cid = str(cat.get("id", ""))
+                cname = cat.get("name", "")
+                csort = cat.get("sort_order", 0)
+                if cid and cname:
+                    api_update("categories", {"name": cname, "sort_order": csort}, {"id": cid})
+            self.send_json({"ok": True})
         elif path == "/api/orders":
             if not self.require_auth():
                 return self.send_json({"error": "unauthorized"}, 401)

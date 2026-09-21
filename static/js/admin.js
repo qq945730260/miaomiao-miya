@@ -8,6 +8,7 @@ function toImgSrc(v){return v&&v.startsWith("http")?v:(v?"/uploads/"+v:"");}
 
 function toast(msg){
   var t=document.getElementById("toast");
+  if(!t){return;}
   t.textContent=msg;
   t.classList.add("show");
   setTimeout(function(){t.classList.remove("show");},2500);
@@ -78,7 +79,8 @@ function loadCategories(){
 }
 
 function loadCategoriesUI(){
-  var c=document.getElementById("categories-list");
+  var c=document.getElementById("cat-list");
+  if(!c){console.error("[ADMIN] cat-list element not found");return;}
   var h="";
   categories.sort(function(a,b){return a.sort_order-b.sort_order;});
   categories.forEach(function(cat,i){
@@ -113,6 +115,7 @@ function deleteCategory(id){
 }
 function saveCategories(){
   var rows=document.querySelectorAll(".cat-row");
+  if(rows.length===0){toast("请先添加分类");return;}
   var updated=[];
   rows.forEach(function(row,i){
     var id=row.querySelector(".cat-name").getAttribute("data-id");
@@ -149,7 +152,8 @@ function loadProducts(){
 }
 
 function renderProducts(){
-  var c=document.getElementById("products-list");
+  var c=document.getElementById("product-table-body");
+  if(!c){console.error("[ADMIN] product-table-body element not found");return;}
   var h='';
   products.forEach(function(p){
     var titleHtml=p.title?esc(p.title):'<span style="color:#ccc;font-size:0.8rem;">(无标题)</span>';
@@ -166,6 +170,8 @@ function renderProducts(){
       +'</tr>';
   });
   c.innerHTML=h||'<tr><td colspan="9">暂无商品</td></tr>';
+  var cnt=document.getElementById("product-count");
+  if(cnt)cnt.textContent=products.length;
 }
 
 function editProduct(id){
@@ -173,7 +179,6 @@ function editProduct(id){
   if(!p)return;
   document.getElementById("form-id").value=p.id;
   document.getElementById("form-title").value=p.title||"";
-  document.getElementById("form-name").value=p.name||"";
   document.getElementById("form-category").value=p.category||"";
   document.getElementById("form-price").value=p.price||"";
   document.getElementById("form-stock").value=p.stock||"";
@@ -182,7 +187,43 @@ function editProduct(id){
   if(p.detail_image){var dp=document.getElementById("detail-preview-img");dp.src=toImgSrc(p.detail_image);dp.style.display="";}
   document.getElementById("form-desc").value=p.description||"";
   document.getElementById("form-wechat").value=p.wechat||"";
-  if(p.image!=="placeholder.jpg"){var prev=document.getElementById("preview-img");prev.src=toImgSrc(p.image);prev.style.display="";}
+  if(p.image&&p.image!=="placeholder.jpg"){var prev=document.getElementById("preview-img");prev.src=toImgSrc(p.image);prev.style.display="";}
+}
+
+function openModal(mode){
+  var modal=document.getElementById("modal");
+  if(!modal){console.error("[ADMIN] modal element not found");return;}
+  modal.style.display="flex";
+  document.getElementById("modal-title").textContent=mode==="edit"?"编辑商品":"新增商品";
+  if(mode==="add"){
+    document.getElementById("form-id").value="";
+    document.getElementById("form-title").value="";
+    document.getElementById("form-category").value="";
+    document.getElementById("form-price").value="";
+    document.getElementById("form-stock").value="";
+    document.getElementById("form-image").value="placeholder.jpg";
+    document.getElementById("form-detail_image").value="";
+    document.getElementById("form-desc").value="";
+    document.getElementById("form-wechat").value="";
+    document.getElementById("preview-img").style.display="none";
+    document.getElementById("detail-preview-img").style.display="none";
+  }
+  // Populate category dropdown
+  var sel=document.getElementById("form-category");
+  if(sel){
+    sel.innerHTML='<option value="">请选择分类</option>';
+    categories.sort(function(a,b){return a.sort_order-b.sort_order;});
+    categories.forEach(function(cat){
+      var opt=document.createElement("option");
+      opt.value=cat.name;opt.textContent=cat.name;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+function closeModal(){
+  var modal=document.getElementById("modal");
+  if(modal)modal.style.display="none";
 }
 
 function submitForm(){
@@ -199,25 +240,14 @@ function submitForm(){
   if(!name){toast("请填写商品标题");return;}
   if(!price){toast("请填写价格");return;}
   var body={name:name,title:title,category:cat,price:price,stock:stock,image:image,detail_image:detail_image,description:description,wechat:wechat};
-  var url=API+(id?"/products?id="+id:"/products");
+  var url=API+(id?"/products?id="+encodeURIComponent(id):"/products");
   var method=id?"PUT":"POST";
   fetch(url,{method:method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
     .then(function(r){return r.json();})
     .then(function(d){
       if(d.id||d.ok){
         toast(id?"商品已更新":"商品已添加");
-        document.getElementById("form-id").value="";
-        document.getElementById("form-title").value="";
-        document.getElementById("form-name").value="";
-        document.getElementById("form-category").value="";
-        document.getElementById("form-price").value="";
-        document.getElementById("form-stock").value="";
-        document.getElementById("form-image").value="";
-        document.getElementById("form-detail_image").value="";
-        document.getElementById("form-desc").value="";
-        document.getElementById("form-wechat").value="";
-        document.getElementById("preview-img").style.display="none";
-        document.getElementById("detail-preview-img").style.display="none";
+        closeModal();
         loadProducts();
       }else toast(d.error||"保存失败");
     })
@@ -242,22 +272,27 @@ function loadOrders(){
 }
 
 function renderOrders(){
-  var c=document.getElementById("orders-list");
+  var c=document.getElementById("order-table-body");
+  if(!c){console.error("[ADMIN] order-table-body element not found");return;}
   var h='';
   orders.sort(function(a,b){return b.id-a.id;});
   orders.forEach(function(o){
     var date=(o.created_at||"").slice(0,10);
+    var productName=o.product_title||o.product_name||"";
     h+='<tr>'
-      +'<td>'+o.id+'</td>'
+      +'<td>'+o.order_number+'</td>'
+      +'<td>'+esc(productName)+'</td>'
       +'<td>'+esc(o.email)+'</td>'
-      +'<td>'+esc(o.product_name)+'</td>'
       +'<td>'+o.quantity+'</td>'
-      +'<td>'+o.total+'</td>'
+      +'<td>¥'+o.total+'</td>'
+      +'<td>'+(o.status||'pending')+'</td>'
       +'<td>'+date+'</td>'
-      +'<td><button onclick="deleteOrder('+o.id+')" style="background:#e74c3c;">删除</button></td>'
+      +'<td><button onclick="deleteOrder('+o.id+')" style="background:#e74c3c;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">删除</button></td>'
       +'</tr>';
   });
-  c.innerHTML=h||'<tr><td colspan="7">暂无订单</td></tr>';
+  c.innerHTML=h||'<tr><td colspan="8">暂无订单</td></tr>';
+  var cnt=document.getElementById("order-count");
+  if(cnt)cnt.textContent=orders.length;
 }
 
 function deleteOrder(id){
@@ -349,12 +384,17 @@ function uploadDetailImage(e){
     .catch(function(){toast("上传失败");});
 }
 
-function updateDetailRatio(){}
-
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function showTab(name){
   document.querySelectorAll(".tab-content").forEach(function(el){el.style.display="none";});
   document.querySelectorAll(".nav-tab").forEach(function(el){el.classList.remove("active");});
-  document.getElementById("tab-"+name).style.display="block";
-  event.target.classList.add("active");
+  var tab=document.getElementById("tab-"+name);
+  if(tab)tab.style.display="block";
+  if(event&&event.target)event.target.classList.add("active");
 }
+
+// Close modal on overlay click
+document.addEventListener("click",function(e){
+  var modal=document.getElementById("modal");
+  if(e.target===modal)closeModal();
+});
