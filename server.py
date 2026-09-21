@@ -1,4 +1,4 @@
-﻿"""Pet Shop Server V6 - Supabase via direct REST API (no SDK dependency)"""
+"""Pet Shop Server V6 - Supabase via direct REST API (no SDK dependency)"""
 import json, os, secrets, time, re, base64
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
