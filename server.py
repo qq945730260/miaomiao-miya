@@ -158,12 +158,16 @@ def clean_expired_orders():
 
 def upload_image(file_bytes, filename):
     """Upload to Supabase Storage, return filename."""
+    print(f"[STORAGE] Upload started: {filename}", flush=True)
+    print(f"[STORAGE] Service key: {bool(SUPABASE_SERVICE_KEY)}, URL: {bool(SUPABASE_URL)}, Bucket: {SUPABASE_BUCKET}", flush=True)
     if not SUPABASE_SERVICE_KEY or not SUPABASE_URL:
+        print(f"[STORAGE] No service key/URL, using local fallback", flush=True)
         ext = os.path.splitext(filename)[1].lower() or ".jpg"
         sn = secrets.token_hex(8) + ext
         os.makedirs(UPLOAD_DIR, exist_ok=True)
         with open(os.path.join(UPLOAD_DIR, sn), "wb") as f:
             f.write(file_bytes)
+        print(f"[STORAGE] Saved locally: {sn}", flush=True)
         return sn
     try:
         ext = os.path.splitext(filename)[1].lower() or ".jpg"
