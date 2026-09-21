@@ -282,6 +282,7 @@ class H(BaseHTTPRequestHandler):
             pass
 
     def do_GET(self):
+        self.request_method = "GET"
         p = urlparse(self.path)
         path = p.path.rstrip("/") or "/"
         qs = parse_qs(p.query)
@@ -429,6 +430,7 @@ class H(BaseHTTPRequestHandler):
 
     def do_POST(self):
         p = urlparse(self.path)
+        self.request_method = "POST"
         path = p.path.rstrip("/") or "/"
 
         if path == "/api/admin/login":
@@ -632,6 +634,7 @@ class H(BaseHTTPRequestHandler):
             self.send_error(404)
 
     def do_PUT(self):
+        self.request_method = "PUT"
         p = urlparse(self.path)
         path = p.path.rstrip("/") or "/"
         qs = parse_qs(p.query)
@@ -697,8 +700,9 @@ class H(BaseHTTPRequestHandler):
             self.send_error(404)
 
     def do_DELETE(self):
+        self.request_method = "DELETE"
         p = urlparse(self.path)
-        path = p.path.rstrip("/") or "/"
+        self.request_method = "DELETE"
         qs = parse_qs(p.query)
 
         if path == "/api/categories":
