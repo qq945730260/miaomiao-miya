@@ -1,28 +1,14 @@
 {
-  "products": [
-    {
-      "id": 999,
-      "name": "测试商品",
-      "title": "测试标题",
-      "category": "测试",
-      "price": 9.9,
-      "stock": 10,
-      "image": "placeholder.jpg",
-      "detail_image": "",
-      "description": "测试",
-      "wechat": "",
-      "qq": ""
-    }
-  ],
+  "products": [],
   "categories": [],
   "orders": [],
   "settings": {
     "site_title": "喵喵咪丫",
     "shop_description": "",
-    "wechat_pay_qr": "wechat_test.jpg",
-    "alipay_qr": "alipay_test.jpg",
+    "wechat_pay_qr": "",
+    "alipay_qr": "",
     "wechat_qr": "",
-    "shop_logo": "test_logo.jpg"
+    "shop_logo": ""
   },
   "admin": {
     "username": "xuxu",
