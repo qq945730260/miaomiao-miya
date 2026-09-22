@@ -187,6 +187,7 @@ function editProduct(id){
   if(p.detail_image){var dp=document.getElementById("detail-preview-img");dp.src=toImgSrc(p.detail_image);dp.style.display="";}
   document.getElementById("form-desc").value=p.description||"";
   document.getElementById("form-wechat").value=p.wechat||"";
+  if(p.image&&p.image!=="placeholder.jpg"){var prev=document.getElementById("preview-img");prev.src=toImgSrc(p.image);prev.style.display="";}
   openModal('edit');
 }
 
@@ -368,8 +369,7 @@ function uploadImage(e){
   fetch(API+"/upload",{method:"POST",body:fd})
     .then(function(r){return r.json();})
     .then(function(d){
-      if(d.filename){document.getElementById("form-image").value=toImgSrc(d.filename);document.getElementById("preview-img").src=toImgSrc(d.filename);document.getElementById("preview-img").style.display="";
-  openModal("edit");}
+      if(d.filename){document.getElementById("form-image").value=toImgSrc(d.filename);document.getElementById("preview-img").src=toImgSrc(d.filename);document.getElementById("preview-img").style.display="";}
     })
     .catch(function(){toast("上传失败");});
 }
