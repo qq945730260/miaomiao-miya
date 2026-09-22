@@ -138,7 +138,7 @@ def pull_data_from_git():
             # Fetch first to check status
             r_fetch = subprocess.run(["git", "-c", "safe.directory=*",
                 "-c", "credential.helper=store --file=" + cred_file,
-                "fetch", "origin", "v5"],
+                "fetch", "origin", "v6"],
                 capture_output=True, timeout=15, cwd=BASE_DIR)
             if r_fetch.returncode != 0:
                 log_sync("FETCH FAIL: " + r_fetch.stderr.decode("utf-8", errors="replace")[:200])
@@ -146,24 +146,24 @@ def pull_data_from_git():
             # Then pull
             r = subprocess.run(["git", "-c", "safe.directory=*",
                 "-c", "credential.helper=store --file=" + cred_file,
-                "pull", "--ff-only", "origin", "v5"],
+                "pull", "--ff-only", "origin", "v6"],
                 capture_output=True, timeout=30, cwd=BASE_DIR)
         finally:
             try: os.remove(cred_file)
             except: pass
         if r.returncode == 0:
-            log_sync("OK: pulled on startup")
+            log_sync("OK: pulled v6 on startup")
         else:
             err = r.stderr.decode("utf-8", errors="replace")[:300]
             log_sync("PULL FAIL: " + err)
             # Try force pull as fallback
-            log_sync("TRYING FORCE PULL...")
+            log_sync("TRYING FORCE PULL v6...")
             r2 = subprocess.run(["git", "-c", "safe.directory=*",
                 "-c", "credential.helper=store --file=" + cred_file,
-                "pull", "--force", "origin", "v5"],
+                "pull", "--force", "origin", "v6"],
                 capture_output=True, timeout=30, cwd=BASE_DIR)
             if r2.returncode == 0:
-                log_sync("OK: force pulled")
+                log_sync("OK: force pulled v6")
             else:
                 log_sync("FORCE PULL FAILED: " + r2.stderr.decode("utf-8", errors="replace")[:200])
     except Exception as e:
