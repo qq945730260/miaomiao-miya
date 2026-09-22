@@ -113,6 +113,7 @@ function deleteCategory(id){
     .then(function(d){if(d.ok){categories=categories.filter(function(c){return c.id!==id;});loadCategories();toast("已删除");}else toast(d.error||"删除失败");})
     .catch(function(){toast("网络错误");});
 }
+function moveCat(id,direction){var idx=categories.findIndex(function(c){return c.id===id;});if(idx<0)return;var newIdx=idx+direction;if(newIdx<0||newIdx>=categories.length)return;var tmp=categories[idx];categories[idx]=categories[newIdx];categories[newIdx]=tmp;categories.forEach(function(c,i){c.sort_order=i;});fetch(API+"/categories/batch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(categories)}).then(function(r){return r.json();}).then(function(d){loadCategories();}).catch(function(){toast("网络错误");});}
 function saveCategories(){
   var rows=document.querySelectorAll(".cat-row");
   if(rows.length===0){toast("请先添加分类");return;}
