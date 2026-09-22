@@ -99,7 +99,7 @@ function loadDetail(){
       currentProduct=prod;currentQty=1;
       var stockHtml=prod.stock>0?'<span style="color:#7BC89A;font-weight:700;">有货 ('+prod.stock+' 件)</span>':'<span style="color:#e74c3c;font-weight:700;">已售罄</span>';
       var titleHtml=prod.title?'<h1>'+esc(prod.title)+'</h1>':'<h1>'+esc(prod.name)+'</h1>';
-      var topHtml='<div class="detail-top"><div class="detail-left"><img class="detail-head-img" src="/uploads/'+esc(prod.image)+'" alt="'+esc(prod.name)+'" onerror="this.src=\'/uploads/placeholder.jpg\'">'+
+      var topHtml='<div class="detail-top"><div class="detail-left"><img class="detail-head-img" src=toImgSrc(esc(prod.image)) alt="'+esc(prod.name)+'" onerror="this.src=\'/uploads/placeholder.jpg\'">'+
         '</div><div class="detail-right">'+
         '<span class="detail-cat">'+esc(prod.category)+'</span>'+titleHtml+
         '<div class="detail-price">\u00A5'+prod.price+'</div>'+
@@ -108,7 +108,7 @@ function loadDetail(){
         '</div></div>';
       var descHtml='<p class="detail-desc">'+esc(prod.description||'联系我们了解更多')+'</p>';
       var detImgHtml='';
-      if(prod.detail_image){detImgHtml+='<div class="detail-img-wrap"><img class="detail-img" id="detail-main-img" src="/uploads/'+esc(prod.detail_image)+'" alt="详情图" onerror="this.parentElement.style.display=\'none\'"></div>';}
+      if(prod.detail_image){detImgHtml+='<div class="detail-img-wrap"><img class="detail-img" id="detail-main-img" src=toImgSrc(esc(prod.detail_image))+'" alt="详情图" onerror="this.parentElement.style.display=\'none\'"></div>';}
       detailEl.innerHTML=topHtml+descHtml+detImgHtml;
       if(siteSettings&&siteSettings.site_title){document.title=siteSettings.site_title+' - '+esc(prod.name);var logo=document.getElementById('site-logo');if(logo)logo.textContent=esc(siteSettings.site_title);}
     })

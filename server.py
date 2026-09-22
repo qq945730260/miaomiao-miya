@@ -237,7 +237,7 @@ class H(BaseHTTPRequestHandler):
                     for sc in store_cats:
                         if str(sc["id"]) == cid:
                             sc["name"] = cname
-                            sc["sort_order"] = int(csport)
+                            sc["sort_order"] = int(csort)
                             break
             store["categories"] = store_cats
             save_store(store)
