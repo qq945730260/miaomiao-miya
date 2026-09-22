@@ -368,7 +368,8 @@ function uploadImage(e){
   fetch(API+"/upload",{method:"POST",body:fd})
     .then(function(r){return r.json();})
     .then(function(d){
-      if(d.filename){document.getElementById("form-image").value=toImgSrc(d.filename);document.getElementById("preview-img").src=toImgSrc(d.filename);document.getElementById("preview-img").style.display="";}
+      if(d.filename){document.getElementById("form-image").value=toImgSrc(d.filename);document.getElementById("preview-img").src=toImgSrc(d.filename);document.getElementById("preview-img").style.display="";
+  openModal("edit");}
     })
     .catch(function(){toast("上传失败");});
 }
