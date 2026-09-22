@@ -228,23 +228,6 @@ class H(BaseHTTPRequestHandler):
             if BLOCKED_DOMAIN and host == BLOCKED_DOMAIN:
                 return send_json(self, {"error": "forbidden"}, 403)
             self.serve(os.path.join(STATIC_DIR, "admin.html"), "text/html; charset=utf-8")
-        elif path == "/api/categories/batch" and require_auth(self):
-            b = parse_body(self)
-            cats = b if isinstance(b, list) else b.get("categories", [])
-            for cat in cats:
-                cid = str(cat.get("id", ""))
-                cname = cat.get("name", "")
-                csort = cat.get("sort_order", 0)
-                if cid and cname:
-                    store_cats = store.get("categories", [])
-                    for sc in store_cats:
-                        if str(sc["id"]) == cid:
-                            sc["name"] = cname
-                            sc["sort_order"] = int(csort)
-                            break
-            store["categories"] = store_cats
-            save_store(store)
-            send_json(self, {"ok": True})
         elif path == "/api/products":
             qs = parse_qs(p.query)
             if "id" in qs:
@@ -349,6 +332,24 @@ class H(BaseHTTPRequestHandler):
                 save_store(store)
                 return send_json(self, {"ok": True})
             return send_json(self, {"error": "old password wrong"}, 401)
+
+        elif path == "/api/categories/batch" and require_auth(self):
+            b = parse_body(self)
+            cats = b if isinstance(b, list) else b.get("categories", [])
+            for cat in cats:
+                cid = str(cat.get("id", ""))
+                cname = cat.get("name", "")
+                csort = cat.get("sort_order", 0)
+                if cid and cname:
+                    store_cats = store.get("categories", [])
+                    for sc in store_cats:
+                        if str(sc["id"]) == cid:
+                            sc["name"] = cname
+                            sc["sort_order"] = int(csort)
+                            break
+            store["categories"] = store_cats
+            save_store(store)
+            send_json(self, {"ok": True})
         elif path == "/api/categories" and require_auth(self):
             b = parse_body(self)
             name = b.get("name", "").strip()
