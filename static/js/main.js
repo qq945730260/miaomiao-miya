@@ -1,5 +1,5 @@
 var API='/api';
-function toImgSrc(v){return v&&v.startsWith('http')?v:(v?'/uploads/'+v:'');}
+function toImgSrc(v){return v&&v.startsWith('http')?v:(v&&v.startsWith('/uploads/')?v:(v?'/uploads/'+v:''));}
 var allProducts=[];
 var siteSettings={};
 var categories=[];

@@ -4,7 +4,7 @@ var products=[];
 var settings={};
 var categories=[];
 var orders=[];
-function toImgSrc(v){return v&&v.startsWith("http")?v:(v?"/uploads/"+v:"");}
+function toImgSrc(v){return v&&v.startsWith("http")?v:(v&&v.startsWith("/uploads/")?v:(v?"/uploads/"+v:""));}
 
 function toast(msg){
   var t=document.getElementById("toast");
