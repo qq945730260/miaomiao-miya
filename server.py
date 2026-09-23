@@ -302,7 +302,7 @@ class H(BaseHTTPRequestHandler):
                 "product_count": len(store.get("products", [])),
                 "category_count": len(store.get("categories", [])),
                 "order_count": len(store.get("orders", [])),
-                "gh_token_set": bool(os.environ.get("GH_TOKEN", "").strip()),
+                "gh_token_set": bool(os.environ.get("GH_TOKEN", "").strip() or os.environ.get("GITHUB_TOKEN", "").strip()),
                 "sync_log_exists": sync_log_exists,
                 "sync_log": sync_log,
             })
