@@ -1,4 +1,4 @@
-﻿"""Pet Shop Server V6 - JSON storage for persistence"""
+"""Pet Shop Server V6 - JSON storage for persistence"""
 import json, os, secrets, time, re, subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -71,7 +71,7 @@ def generate_order_number():
     """Generate order number like 26091401 (date + sequence)"""
     now = time.strftime("%y%m%d")
     # Get today's orders count to determine sequence
-    store_file = os.path.join(BASE_DIR, "data", "store.json")
+    store_file = STORE_FILE
     seq = 1
     if os.path.exists(store_file):
         try:
