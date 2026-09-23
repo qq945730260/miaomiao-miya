@@ -1,4 +1,4 @@
-"""Pet Shop Server V6 - JSON storage for persistence"""
+﻿"""Pet Shop Server V6 - JSON storage for persistence"""
 import json, os, secrets, time, re, subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
