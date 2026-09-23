@@ -5,7 +5,7 @@ from urllib.parse import parse_qs, urlparse
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _RENDER_VOL = os.environ.get("RENDER_EXTERNAL_VOLUME", "").strip()
-if _RENDER_VOL and os.path.isdir(_RENDER_VOL):
+if _RENDER_VOL:
     DATA_DIR = _RENDER_VOL
     UPLOAD_DIR = os.path.join(_RENDER_VOL, "uploads")
 else:
