@@ -128,6 +128,23 @@ def auto_commit():
     except Exception as e:
         log_sync("EXC: " + str(e))
 
+def ensure_git_remote():
+    """Ensure git remote origin is configured."""
+    try:
+        r = subprocess.run(["git", "-c", "safe.directory=*", "remote", "get-url", "origin"],
+            capture_output=True, text=True, timeout=5, cwd=BASE_DIR)
+        if r.returncode != 0:
+            # Remote not configured, set it up
+            token = os.environ.get("GH_TOKEN", "").strip()
+            if token:
+                url = "https://x-access-token:" + token + "@github.com/qq945730260/miaomiao-miya.git"
+                subprocess.run(["git", "-c", "safe.directory=*", "remote", "add", "origin", url],
+                    capture_output=True, timeout=5, cwd=BASE_DIR)
+                log_sync("SETUP: git remote origin configured")
+    except Exception as e:
+        log_sync("SETUP WARN: " + str(e))
+
+
 def pull_data_from_git():
     """Pull latest data from git on startup."""
     token = os.environ.get("GH_TOKEN", "").strip()
