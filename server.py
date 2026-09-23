@@ -4,8 +4,13 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+_RENDER_VOL = os.environ.get("RENDER_EXTERNAL_VOLUME", "").strip()
+if _RENDER_VOL and os.path.isdir(_RENDER_VOL):
+    DATA_DIR = _RENDER_VOL
+    UPLOAD_DIR = os.path.join(_RENDER_VOL, "uploads")
+else:
+    DATA_DIR = os.path.join(BASE_DIR, "data")
+    UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 STORE_FILE = os.path.join(DATA_DIR, "store.json")
 ADMIN_USER = "xuxu"
@@ -239,6 +244,17 @@ class H(BaseHTTPRequestHandler):
             send_json(self, store.get("settings", {}))
         elif path == "/api/admin/check":
             send_json(self, {"auth": require_auth(self)})
+        elif path == "/api/admin/sync":
+            if not require_auth(self):
+                return send_json(self, {"error": "unauthorized"}, 401)
+            try:
+                pull_data_from_git()
+                store = load_store()
+                auto_commit()
+                send_json(self, {"ok": True, "message": "同步完成"})
+            except Exception as e:
+                log_sync("SYNC ERR: " + str(e))
+                send_json(self, {"ok": False, "message": str(e)}, 500)
         elif path == "/api/admin/payment_qrcodes":
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)
@@ -637,6 +653,14 @@ def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     
+    # Startup diagnostics
+    _vol = os.environ.get("RENDER_EXTERNAL_VOLUME", "").strip()
+    if _vol and os.path.isdir(_vol):
+        print("[V7] Using Render persistent volume: " + _vol, flush=True)
+    else:
+        print("[V7] Using local storage: " + DATA_DIR, flush=True)
+    print("[V7] Data file: " + STORE_FILE, flush=True)
+    print("[V7] Store exists: " + str(os.path.exists(STORE_FILE)), flush=True)
     # Always pull from git first
     pull_data_from_git()
     

@@ -386,6 +386,7 @@ function uploadDetailImage(e){
     .catch(function(){toast("上传失败");});
 }
 
+function manualSync(){toast("正在同步到GitHub...");fetch(API+"/admin/sync",{method:"POST",headers:{"Content-Type":"application/json"}}).then(function(r){return r.json();}).then(function(d){if(d.ok){toast("同步成功：已推送到GitHub");}else toast((d.message||"同步失败").toString());}).catch(function(){toast("网络错误，同步失败");});}
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function showTab(name){
   document.querySelectorAll(".tab-content").forEach(function(el){el.style.display="none";});

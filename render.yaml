@@ -1,12 +1,18 @@
-services:
+﻿services:
   - type: web
-    branch: v6
+    branch: v7
     name: miaomiao-miya
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: python server.py
+    volumes:
+      - key: MIAOMIAO_DATA
+        path: /data/miaomiao
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: GH_TOKEN
         sync: false
+      - key: RENDER_EXTERNAL_VOLUME
+        value: /data/miaomiao
+        required: true
