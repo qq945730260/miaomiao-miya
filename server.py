@@ -1,4 +1,4 @@
-﻿"""Pet Shop Server V6 - JSON storage for persistence"""
+"""Pet Shop Server V6 - JSON storage for persistence"""
 import json, os, secrets, time, re, subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -326,7 +326,7 @@ class H(BaseHTTPRequestHandler):
         elif path.startswith("/static/"):
             self.serve(os.path.join(BASE_DIR, path.lstrip("/")))
         elif path.startswith("/uploads/"):
-            self.serve(os.path.join(BASE_DIR, path.lstrip("/")))
+            self.serve(os.path.join(UPLOAD_DIR, path.lstrip('/uploads/')))
         else:
             self.send_error(404)
 
