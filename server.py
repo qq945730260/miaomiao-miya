@@ -261,17 +261,6 @@ class H(BaseHTTPRequestHandler):
             send_json(self, store.get("settings", {}))
         elif path == "/api/admin/check":
             send_json(self, {"auth": require_auth(self)})
-        elif path == "/api/admin/sync":
-            if not require_auth(self):
-                return send_json(self, {"error": "unauthorized"}, 401)
-            try:
-                pull_data_from_git()
-                store = load_store()
-                auto_commit()
-                send_json(self, {"ok": True, "message": "同步完成"})
-            except Exception as e:
-                log_sync("SYNC ERR: " + str(e))
-                send_json(self, {"ok": False, "message": str(e)}, 500)
         elif path == "/api/admin/payment_qrcodes":
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)
@@ -525,6 +514,17 @@ class H(BaseHTTPRequestHandler):
             save_store(store)
             send_json(self, {"ok": True})
         else:
+        elif path == "/api/admin/sync":
+            if not require_auth(self):
+                return send_json(self, {"error": "unauthorized"}, 401)
+            try:
+                pull_data_from_git()
+                store = load_store()
+                auto_commit()
+                send_json(self, {"ok": True, "message": "同步完成"})
+            except Exception as e:
+                log_sync("SYNC ERR: " + str(e))
+                send_json(self, {"ok": False, "message": str(e)}, 500)
             self.send_error(404)
 
     def do_PUT(self):
