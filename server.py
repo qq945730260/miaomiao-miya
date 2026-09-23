@@ -679,6 +679,7 @@ def main():
     print("[V7] Data file: " + STORE_FILE, flush=True)
     print("[V7] Store exists: " + str(os.path.exists(STORE_FILE)), flush=True)
     # Always pull from git first
+    ensure_git_remote()
     pull_data_from_git()
     
     # Load store data
