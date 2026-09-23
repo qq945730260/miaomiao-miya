@@ -513,7 +513,6 @@ class H(BaseHTTPRequestHandler):
             store["products"] = products
             save_store(store)
             send_json(self, {"ok": True})
-        else:
         elif path == "/api/admin/sync":
             if not require_auth(self):
                 return send_json(self, {"error": "unauthorized"}, 401)
