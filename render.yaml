@@ -7,7 +7,7 @@
     startCommand: python server.py
     volumes:
       - key: MIAOMIAO_DATA
-        path: /data/miaomiao
+        path: /home/miaomiao/data
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -15,5 +15,5 @@
         value: ""
         required: true
       - key: RENDER_EXTERNAL_VOLUME
-        value: /data/miaomiao
+        value: /home/miaomiao/data
         required: true
