@@ -131,7 +131,7 @@ def auto_commit():
                 r3 = subprocess.run(["git", "-c", "safe.directory=*",
                     "-c", "credential.helper=store --file=" + cred_file,
                     "push", "origin", "v7"],
-                    capture_output=True, timeout=30, cwd=BASE_DIR)
+                    capture_output=True, timeout=60, cwd=BASE_DIR)
             finally:
                 try: os.remove(cred_file)
                 except: pass
@@ -184,7 +184,7 @@ def pull_data_from_git():
             r = subprocess.run(["git", "-c", "safe.directory=*",
                 "-c", "credential.helper=store --file=" + cred_file,
                 "pull", "--ff-only", "origin", "v7"],
-                capture_output=True, timeout=30, cwd=BASE_DIR)
+                capture_output=True, timeout=60, cwd=BASE_DIR)
         finally:
             try: os.remove(cred_file)
             except: pass
@@ -198,7 +198,7 @@ def pull_data_from_git():
             r2 = subprocess.run(["git", "-c", "safe.directory=*",
                 "-c", "credential.helper=store --file=" + cred_file,
                 "pull", "--force", "origin", "v7"],
-                capture_output=True, timeout=30, cwd=BASE_DIR)
+                capture_output=True, timeout=60, cwd=BASE_DIR)
             if r2.returncode == 0:
                 log_sync("OK: force pulled v7")
             else:
@@ -716,6 +716,12 @@ def main():
                     print('[V7] Copied upload: ' + f + ' to persistent volume', flush=True)
     else:
         print('[V7] Local data exists (' + str(os.path.getsize(STORE_FILE)) + ' bytes), skipping git pull', flush=True)
+
+    # Always sync local data to git on startup (in case previous push failed)
+    if os.path.exists(STORE_FILE) and os.path.getsize(STORE_FILE) >= 100:
+        print('[V7] Syncing local data to git on startup...', flush=True)
+        auto_commit()
+        print('[V7] Startup sync complete', flush=True)
     
     # Load store data
     store = load_store()
@@ -758,3 +764,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
