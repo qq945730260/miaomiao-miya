@@ -1,9 +1,6 @@
-__pycache__/
+﻿__pycache__/
 *.pyc
 *.pyo
 .env
 fix_*.py
-data/store.json
 data/sync.log
-uploads/
-!.gitkeep
