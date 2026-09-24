@@ -127,6 +127,8 @@ def auto_commit():
             log_sync("DEBUG: local data files=" + str(os.listdir(os.path.join(BASE_DIR, "data"))))
         if os.path.exists(os.path.join(BASE_DIR, "uploads")):
             log_sync("DEBUG: local upload files=" + str(os.listdir(os.path.join(BASE_DIR, "uploads"))))
+        # Update sync log timestamp to force commit
+        log_sync("SYNC: " + time.strftime("%Y-%m-%d %H:%M:%S"))
         r = subprocess.run(["git", "-c", "safe.directory=*", "add", "-A", "data/", "uploads/"],
             capture_output=True, timeout=10, cwd=BASE_DIR)
 
