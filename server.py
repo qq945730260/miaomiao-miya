@@ -1,5 +1,5 @@
 """Pet Shop Server V6 - JSON storage for persistence"""
-import json, os, secrets, time, re, subprocess
+import json, os, secrets, time, re, subprocess, threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -725,6 +725,39 @@ class H(BaseHTTPRequestHandler):
             pass
 
 
+def _startup_sync():
+    """Run git sync in background after server starts."""
+    try:
+        ensure_git_remote()
+        if not os.path.exists(STORE_FILE) or os.path.getsize(STORE_FILE) < 100:
+            print('[V7] No local data, pulling from git...', flush=True)
+            pull_data_from_git()
+            import shutil
+            for fn in ['store.json', 'sync.log']:
+                src = os.path.join(BASE_DIR, 'data', fn)
+                dst = os.path.join(DATA_DIR, fn)
+                if os.path.exists(src):
+                    shutil.copy2(src, dst)
+                    print('[V7] Copied ' + fn + ' to persistent volume', flush=True)
+        elif (time.time() - os.path.getmtime(STORE_FILE)) > 3600:
+            print('[V7] Local data is old (>1h), pulling from git to sync...', flush=True)
+            pull_data_from_git()
+            import shutil
+            for fn in ['store.json', 'sync.log']:
+                src = os.path.join(BASE_DIR, 'data', fn)
+                dst = os.path.join(DATA_DIR, fn)
+                if os.path.exists(src):
+                    shutil.copy2(src, dst)
+                    print('[V7] Synced ' + fn + ' to persistent volume', flush=True)
+        else:
+            print('[V7] Local data exists and is fresh (' + str(os.path.getsize(STORE_FILE)) + ' bytes), skipping git pull', flush=True)
+        if os.path.exists(STORE_FILE) and os.path.getsize(STORE_FILE) >= 100:
+            print('[V7] Syncing local data to git on startup...', flush=True)
+            auto_commit()
+            print('[V7] Startup sync complete', flush=True)
+    except Exception as e:
+        print('[V7] Startup sync error: ' + str(e), flush=True)
+
 def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -737,42 +770,8 @@ def main():
         print("[V7] Using local storage: " + DATA_DIR, flush=True)
     print("[V7] Data file: " + STORE_FILE, flush=True)
     print("[V7] Store exists: " + str(os.path.exists(STORE_FILE)), flush=True)
-    # Only pull from git if persistent volume has no data OR data is old (>1 hour)
-    ensure_git_remote()
-    if not os.path.exists(STORE_FILE) or os.path.getsize(STORE_FILE) < 100:
-        print('[V7] No local data, pulling from git...', flush=True)
-        pull_data_from_git()
-        # Copy pulled data to persistent volume
-        import shutil
-        for fn in ['store.json', 'sync.log']:
-            src = os.path.join(BASE_DIR, 'data', fn)
-            dst = os.path.join(DATA_DIR, fn)
-            if os.path.exists(src):
-                shutil.copy2(src, dst)
-                print('[V7] Copied ' + fn + ' to persistent volume', flush=True)
-        # Note: uploads are NOT copied from git to persistent volume on startup
-        # auto_commit() handles uploads sync after each upload operation
-    elif (time.time() - os.path.getmtime(STORE_FILE)) > 3600:
-        print('[V7] Local data is old (>1h), pulling from git to sync...', flush=True)
-        pull_data_from_git()
-        # Merge: only replace missing keys, never overwrite existing data
-        import shutil
-        for fn in ['store.json', 'sync.log']:
-            src = os.path.join(BASE_DIR, 'data', fn)
-            dst = os.path.join(DATA_DIR, fn)
-            if os.path.exists(src):
-                shutil.copy2(src, dst)
-                print('[V7] Synced ' + fn + ' to persistent volume', flush=True)
-    else:
-        print('[V7] Local data exists and is fresh (' + str(os.path.getsize(STORE_FILE)) + ' bytes), skipping git pull', flush=True)
-
-    # Always sync local data to git on startup (in case previous push failed)
-    if os.path.exists(STORE_FILE) and os.path.getsize(STORE_FILE) >= 100:
-        print('[V7] Syncing local data to git on startup...', flush=True)
-        auto_commit()
-        print('[V7] Startup sync complete', flush=True)
     
-    # Load store data
+    # Load store data (use defaults if no file exists)
     store = load_store()
     
     # Fallback: only use defaults on truly first run (no store file exists)
@@ -805,8 +804,10 @@ def main():
     
     port = int(os.environ.get("PORT", 8000))
     server = HTTPServer(("0.0.0.0", port), H)
-    print(f"Pet shop running on http://0.0.0.0:{port}")
+    print(f"Pet shop running on http://0.0.0.0:{port}", flush=True)
     print("Loaded " + str(len(store.get("products", []))) + " products, " + str(len(store.get("categories", []))) + " categories", flush=True)
+    # Start git sync in background so server responds immediately
+    threading.Thread(target=_startup_sync, daemon=True).start()
     server.serve_forever()
 
 
