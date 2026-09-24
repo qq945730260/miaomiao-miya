@@ -705,15 +705,9 @@ def main():
             if os.path.exists(src):
                 shutil.copy2(src, dst)
                 print('[V7] Copied ' + f + ' to persistent volume', flush=True)
-        # Also copy uploads from git to persistent volume
-        local_uploads = os.path.join(BASE_DIR, 'uploads')
-        if os.path.exists(local_uploads):
-            vol_uploads = os.path.join(DATA_DIR, 'uploads')
-            os.makedirs(vol_uploads, exist_ok=True)
-            for f in os.listdir(local_uploads):
-                if not f.startswith('.'):
-                    shutil.copy2(os.path.join(local_uploads, f), os.path.join(vol_uploads, f))
-                    print('[V7] Copied upload: ' + f + ' to persistent volume', flush=True)
+        # Note: uploads are NOT copied from git to persistent volume on startup
+        # This prevents overwriting user-uploaded images with git placeholders
+        # auto_commit() handles uploads sync after each upload operation
     else:
         print('[V7] Local data exists (' + str(os.path.getsize(STORE_FILE)) + ' bytes), skipping git pull', flush=True)
 
