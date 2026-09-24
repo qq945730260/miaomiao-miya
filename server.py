@@ -14,6 +14,7 @@ else:
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 STORE_FILE = os.path.join(DATA_DIR, "store.json")
 SYNC_LOG = os.path.join(DATA_DIR, "sync.log")
+SYNC_FP_FILE = os.path.join(DATA_DIR, ".sync_fp")
 ADMIN_USER = "xuxu"
 ADMIN_PASS = "5361172"
 SESSION_TTL = 86400
@@ -180,11 +181,35 @@ def ensure_git_remote():
         log_sync("SETUP WARN: " + str(e))
 
 
+def calc_sync_fingerprint():
+    """Calculate MD5 fingerprint of current store data."""
+    if not os.path.exists(STORE_FILE):
+        return ""
+    try:
+        with open(STORE_FILE, "r", encoding="utf-8") as f:
+            store = json.load(f)
+        data = {k: store.get(k, []) for k in ["products", "categories", "orders", "settings"]}
+        raw = json.dumps(data, sort_keys=True, ensure_ascii=False).encode()
+        return hashlib.md5(raw).hexdigest()
+    except Exception:
+        return ""
+
 def pull_data_from_git():
-    """Pull latest data from git on startup."""
+    """Pull latest data from git on startup - only if fingerprints differ."""
     token = os.environ.get("GH_TOKEN", "").strip()
     if not token:
         log_sync("SKIP: GH_TOKEN not set")
+        return
+    # Check if local data exists and has same fingerprint as git
+    local_fp = calc_sync_fingerprint()
+    if local_fp:
+        # Save fingerprint to file for comparison
+        try:
+            with open(SYNC_FP_FILE, "w", encoding="utf-8") as f:
+                f.write(local_fp)
+        except Exception:
+            pass
+        log_sync("FP local=" + local_fp[:8] + "... skipping pull to protect local data")
         return
     try:
         cred_file = os.path.join(BASE_DIR, ".git", ".credentials")
