@@ -151,7 +151,7 @@ def auto_commit():
             try:
                 r3 = subprocess.run(["git", "-c", "safe.directory=*",
                     "-c", "credential.helper=store --file=" + cred_file,
-                    "push", "origin", "v7"],
+                    "push", "-u", "origin", "v7"],
                     capture_output=True, timeout=60, cwd=BASE_DIR)
             finally:
                 try: os.remove(cred_file)
@@ -161,6 +161,15 @@ def auto_commit():
                 else:
                     err = r3.stderr.decode("utf-8", errors="replace")[:300]
                     log_sync("FAIL: " + err)
+                    # If push fails, try with token in URL as fallback
+                    log_sync("TRYING fallback push with token in URL...")
+                    r_fb = subprocess.run(["git", "-c", "safe.directory=*",
+                        "push", "https://x-access-token:" + token + "@github.com/qq945730260/miaomiao-miya.git", "v7"],
+                        capture_output=True, timeout=60, cwd=BASE_DIR)
+                    if r_fb.returncode == 0:
+                        log_sync("OK: fallback push succeeded")
+                    else:
+                        log_sync("FAIL: fallback push also failed: " + r_fb.stderr.decode("utf-8", errors="replace")[:200])
     except Exception as e:
         log_sync("EXC: " + str(e))
 
@@ -768,6 +777,11 @@ def _startup_sync():
 def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
+    
+    # === CRITICAL: Initialize git BEFORE anything else ===
+    print("[V7] Initializing git repository...", flush=True)
+    ensure_git_remote()
+    print("[V7] Git remote configured, checking for data...", flush=True)
     
     # Startup diagnostics
     _vol = os.environ.get("RENDER_EXTERNAL_VOLUME", "").strip()
