@@ -130,7 +130,7 @@ def auto_commit():
         log_sync("SYNC: " + time.strftime("%Y-%m-%d %H:%M:%S"))
         # Always update sync log to ensure git detects changes
         if os.path.exists(os.path.join(BASE_DIR, "data", "sync.log")):
-            with open(os.path.join(BASE_DIR, "data", "sync.log"), "a") as sf:
+            with open(SYNC_LOG, "a") as sf:
                 sf.write("PULSE: " + time.strftime("%Y-%m-%d %H:%M:%S") + "\\n")
         r = subprocess.run(["git", "-c", "safe.directory=*", "add", "-A", "data/", "uploads/"],
             capture_output=True, timeout=10, cwd=BASE_DIR)
