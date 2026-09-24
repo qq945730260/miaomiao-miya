@@ -783,15 +783,37 @@ def _startup_sync():
                     shutil.copy2(src, dst)
                     print('[V7] Copied ' + fn + ' to persistent volume', flush=True)
         elif (time.time() - os.path.getmtime(STORE_FILE)) > 3600:
-            print('[V7] Local data is old (>1h), pulling from git to sync...', flush=True)
-            pull_data_from_git()
+            print('[V7] Local data is old (>1h), checking git before sync...', flush=True)
+            # Backup local data before pull
             import shutil
+            _backup = STORE_FILE + '.bak'
+            shutil.copy2(STORE_FILE, _backup)
+            pull_data_from_git()
+            _pulled_ok = False
             for fn in ['store.json', 'sync.log']:
                 src = os.path.join(BASE_DIR, 'data', fn)
                 dst = os.path.join(DATA_DIR, fn)
                 if os.path.exists(src):
-                    shutil.copy2(src, dst)
-                    print('[V7] Synced ' + fn + ' to persistent volume', flush=True)
+                    # Only copy if source has real data
+                    if fn == 'store.json':
+                        try:
+                            with open(src, 'r', encoding='utf-8') as gf:
+                                gd = json.load(gf)
+                            _has_real = (len(gd.get('products',[])) > 0 or 
+                                        len(gd.get('categories',[])) > 1 or
+                                        gd.get('settings',{}).get('shop_logo'))
+                        except: _has_real = False
+                    else:
+                        _has_real = True
+                    if _has_real:
+                        shutil.copy2(src, dst)
+                        print('[V7] Synced ' + fn + ' to persistent volume', flush=True)
+                        _pulled_ok = True
+            if not _pulled_ok:
+                shutil.copy2(_backup, STORE_FILE)
+                print('[V7] Restored local data (git had no real data)', flush=True)
+            try: os.remove(_backup)
+            except: pass
         else:
             print('[V7] Local data exists and is fresh (' + str(os.path.getsize(STORE_FILE)) + ' bytes), skipping git pull', flush=True)
         if os.path.exists(STORE_FILE) and os.path.getsize(STORE_FILE) >= 100:
