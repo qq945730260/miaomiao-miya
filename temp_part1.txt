@@ -1,0 +1,97 @@
+"""Pet Shop Server V6 - JSON storage for persistence"""
+import json, os, secrets, time, re, subprocess
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs, urlparse
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_RENDER_VOL = os.environ.get("RENDER_EXTERNAL_VOLUME", "").strip() or "/home/miaomiao/data"
+if _RENDER_VOL:
+    DATA_DIR = _RENDER_VOL
+    UPLOAD_DIR = os.path.join(_RENDER_VOL, "uploads")
+else:
+    DATA_DIR = os.path.join(BASE_DIR, "data")
+    UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+STORE_FILE = os.path.join(DATA_DIR, "store.json")
+ADMIN_USER = "xuxu"
+ADMIN_PASS = "5361172"
+SESSION_TTL = 86400
+MAX_PRODUCTS = 30
+BLOCKED_DOMAIN = "miaomiao.au0817.dpdns.org"
+ORDER_RETENTION_DAYS = 7
+
+def load_store():
+    """Load store data from JSON file. Never reset to defaults if file exists."""
+    if os.path.exists(STORE_FILE):
+        try:
+            with open(STORE_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            # Ensure all expected keys exist (migrate old formats)
+            data.setdefault("products", [])
+            data.setdefault("categories", [])
+            data.setdefault("orders", [])
+            data.setdefault("settings", {})
+            data.setdefault("admin", {"username": ADMIN_USER, "password": ADMIN_PASS})
+            return data
+        except Exception as e:
+            print("ERROR loading store:", e, flush=True)
+    # Only create default on first run when file truly doesn't exist
+    return {
+        "products": [],
+        "categories": [],
+        "orders": [],
+        "settings": {
+            "site_title": "喵喵咪丫",
+            "shop_description": "",
+            "wechat_pay_qr": "",
+            "alipay_qr": "",
+            "wechat_qr": "",
+            "shop_logo": ""
+        },
+        "admin": {"username": ADMIN_USER, "password": ADMIN_PASS}
+    }
+
+def save_store(store):
+    """Save store data to JSON file and commit to git."""
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(STORE_FILE, "w", encoding="utf-8") as f:
+            json.dump(store, f, ensure_ascii=False, indent=2)
+        auto_commit()
+    except Exception as e:
+        print("ERROR saving store:", e, flush=True)
+
+def get_next_id(items):
+    """Get next sequential ID for a list of items."""
+    if not items:
+        return 1
+    return max(item.get("id", 0) for item in items) + 1
+
+def generate_order_number():
+    """Generate order number like 26091401 (date + sequence)"""
+    now = time.strftime("%y%m%d")
+    # Get today's orders count to determine sequence
+    store_file = STORE_FILE
+    seq = 1
+    if os.path.exists(store_file):
+        try:
+            with open(store_file, "r", encoding="utf-8") as f:
+                store = json.load(f)
+            today = time.strftime("%Y-%m-%d")
+            today_orders = [o for o in store.get("orders", []) if o.get("created_at", "").startswith(today)]
+            seq = len(today_orders) + 1
+        except:
+            pass
+    return now + str(seq).zfill(2)
+
+SYNC_LOG = os.path.join(BASE_DIR, "data", "sync.log")
+
+def log_sync(msg):
+    try:
+        os.makedirs(os.path.dirname(SYNC_LOG), exist_ok=True)
+        with open(SYNC_LOG, "a", encoding="utf-8") as f:
+            f.write(time.strftime("%Y-%m-%d %H:%M:%S") + " " + msg + "\n")
+    except Exception:
+        pass
+
+def auto_commit():

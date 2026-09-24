@@ -1,0 +1,28 @@
+    token = os.environ.get("GH_TOKEN", "").strip()
+    if not token:
+        log_sync("SKIP: GH_TOKEN not set")
+        return
+    try:
+        # Debug: log data status
+        log_sync("DEBUG: auto_commit called")
+        log_sync("DEBUG: DATA_DIR=" + DATA_DIR)
+        log_sync("DEBUG: UPLOAD_DIR=" + UPLOAD_DIR)
+        log_sync("DEBUG: STORE_FILE=" + STORE_FILE)
+        log_sync("DEBUG: STORE_FILE exists=" + str(os.path.exists(STORE_FILE)))
+        if os.path.exists(STORE_FILE):
+            log_sync("DEBUG: STORE_FILE size=" + str(os.path.getsize(STORE_FILE)))
+        # Copy data from persistent volume to working dir for git
+        import shutil
+        for fn in ["store.json", "sync.log"]:
+            src = os.path.join(DATA_DIR, fn)
+            dst = os.path.join(BASE_DIR, "data", fn)
+            if os.path.exists(src):
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copy2(src, dst)
+        # Also copy uploads directory from persistent volume
+        if os.path.exists(UPLOAD_DIR):
+            local_uploads = os.path.join(BASE_DIR, "uploads")
+            os.makedirs(local_uploads, exist_ok=True)
+            for f in os.listdir(UPLOAD_DIR):
+                if not f.startswith("."):
+                    shutil.copy2(os.path.join(UPLOAD_DIR, f), os.path.join(local_uploads, f))

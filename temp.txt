@@ -1,0 +1,15 @@
+    token = os.environ.get("GH_TOKEN", "").strip()
+    if not token:
+        log_sync("SKIP: GH_TOKEN not set")
+        return
+    try:
+        # Copy data from persistent volume to working dir for git
+        import shutil
+        for fn in ["store.json", "sync.log"]:
+            src = os.path.join(DATA_DIR, fn)
+            dst = os.path.join(BASE_DIR, "data", fn)
+            if os.path.exists(src):
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copy2(src, dst)
+        # Also copy uploads directory from persistent volume
+        if os.path.exists(UPLOAD_DIR):
