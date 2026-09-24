@@ -712,24 +712,34 @@ def main():
         print("[V7] Using local storage: " + DATA_DIR, flush=True)
     print("[V7] Data file: " + STORE_FILE, flush=True)
     print("[V7] Store exists: " + str(os.path.exists(STORE_FILE)), flush=True)
-    # Only pull from git if persistent volume has no data
+    # Only pull from git if persistent volume has no data OR data is old (>1 hour)
     ensure_git_remote()
     if not os.path.exists(STORE_FILE) or os.path.getsize(STORE_FILE) < 100:
         print('[V7] No local data, pulling from git...', flush=True)
         pull_data_from_git()
         # Copy pulled data to persistent volume
         import shutil
-        for f in ['store.json', 'sync.log']:
-            src = os.path.join(BASE_DIR, 'data', f)
-            dst = os.path.join(DATA_DIR, f)
+        for fn in ['store.json', 'sync.log']:
+            src = os.path.join(BASE_DIR, 'data', fn)
+            dst = os.path.join(DATA_DIR, fn)
             if os.path.exists(src):
                 shutil.copy2(src, dst)
-                print('[V7] Copied ' + f + ' to persistent volume', flush=True)
+                print('[V7] Copied ' + fn + ' to persistent volume', flush=True)
         # Note: uploads are NOT copied from git to persistent volume on startup
-        # This prevents overwriting user-uploaded images with git placeholders
         # auto_commit() handles uploads sync after each upload operation
+    elif (time.time() - os.path.getmtime(STORE_FILE)) > 3600:
+        print('[V7] Local data is old (>1h), pulling from git to sync...', flush=True)
+        pull_data_from_git()
+        # Merge: only replace missing keys, never overwrite existing data
+        import shutil
+        for fn in ['store.json', 'sync.log']:
+            src = os.path.join(BASE_DIR, 'data', fn)
+            dst = os.path.join(DATA_DIR, fn)
+            if os.path.exists(src):
+                shutil.copy2(src, dst)
+                print('[V7] Synced ' + fn + ' to persistent volume', flush=True)
     else:
-        print('[V7] Local data exists (' + str(os.path.getsize(STORE_FILE)) + ' bytes), skipping git pull', flush=True)
+        print('[V7] Local data exists and is fresh (' + str(os.path.getsize(STORE_FILE)) + ' bytes), skipping git pull', flush=True)
 
     # Always sync local data to git on startup (in case previous push failed)
     if os.path.exists(STORE_FILE) and os.path.getsize(STORE_FILE) >= 100:

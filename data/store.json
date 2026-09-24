@@ -1,6 +1,12 @@
 {
   "products": [],
-  "categories": [],
+  "categories": [
+    {
+      "id": 1,
+      "name": "全部",
+      "sort_order": 0
+    }
+  ],
   "orders": [],
   "settings": {
     "site_title": "喵喵咪丫",
