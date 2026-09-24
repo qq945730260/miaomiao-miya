@@ -773,15 +773,29 @@ def _startup_sync():
     try:
         ensure_git_remote()
         if not os.path.exists(STORE_FILE) or os.path.getsize(STORE_FILE) < 100:
-            print('[V7] No local data, pulling from git...', flush=True)
-            pull_data_from_git()
+            print('[V7] No local data, checking git...', flush=True)
+            # Check if git has real data before pulling
             import shutil
-            for fn in ['store.json', 'sync.log']:
-                src = os.path.join(BASE_DIR, 'data', fn)
-                dst = os.path.join(DATA_DIR, fn)
-                if os.path.exists(src):
-                    shutil.copy2(src, dst)
-                    print('[V7] Copied ' + fn + ' to persistent volume', flush=True)
+            _git_has_real = False
+            pull_data_from_git()
+            _git_store = os.path.join(BASE_DIR, 'data', 'store.json')
+            if os.path.exists(_git_store):
+                try:
+                    with open(_git_store, 'r', encoding='utf-8') as gf:
+                        gd = json.load(gf)
+                    _git_has_real = (len(gd.get('products',[])) > 0 or 
+                                  len(gd.get('categories',[])) > 1 or
+                                  gd.get('settings',{}).get('shop_logo'))
+                except: pass
+            if _git_has_real:
+                for fn in ['store.json', 'sync.log']:
+                    src = os.path.join(BASE_DIR, 'data', fn)
+                    dst = os.path.join(DATA_DIR, fn)
+                    if os.path.exists(src):
+                        shutil.copy2(src, dst)
+                        print('[V7] Initialized from git', flush=True)
+            else:
+                print('[V7] Git has no real data, using embedded defaults', flush=True)
         elif (time.time() - os.path.getmtime(STORE_FILE)) > 3600:
             print('[V7] Local data is old (>1h), checking git before sync...', flush=True)
             # Backup local data before pull
