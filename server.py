@@ -101,7 +101,15 @@ def auto_commit():
         log_sync("SKIP: GH_TOKEN not set")
         return
     try:
-        r = subprocess.run(["git", "-c", "safe.directory=*", "add", "-A", "data/", "uploads/"],
+        # Copy data from persistent volume to working dir for git
+        import shutil
+        for fn in ["store.json", "sync.log"]:
+            src = os.path.join(DATA_DIR, fn)
+            dst = os.path.join(BASE_DIR, "data", fn)
+            if os.path.exists(src):
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copy2(src, dst)
+        r = subprocess.run(["git", "-c", "safe.directory=*", "add", "-A", "data/", "uploads/"},
             capture_output=True, timeout=10, cwd=BASE_DIR)
 
         r2 = subprocess.run(["git", "-c", "safe.directory=*", "commit", "-q", "--allow-empty", "-m", "auto-commit data"],
