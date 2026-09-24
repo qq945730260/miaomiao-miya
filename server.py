@@ -716,6 +716,8 @@ def main():
         print('[V7] Syncing local data to git on startup...', flush=True)
         auto_commit()
         print('[V7] Startup sync complete', flush=True)
+    else:
+        print('[V7] No local data to sync', flush=True)
     
     # Load store data
     store = load_store()
