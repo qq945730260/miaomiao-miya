@@ -95,11 +95,36 @@ def log_sync(msg):
     except Exception:
         pass
 
+def has_real_data():
+    """Check if store has actual user data (not just defaults)."""
+    if not os.path.exists(STORE_FILE):
+        return False
+    try:
+        with open(STORE_FILE, "r", encoding="utf-8") as f:
+            store = json.load(f)
+        products = store.get("products", [])
+        categories = store.get("categories", [])
+        orders = store.get("orders", [])
+        settings = store.get("settings", {})
+        # Real data: at least 1 product, or >1 category (not just "all"), or any orders, or non-empty settings
+        return (len(products) > 0 or 
+                len(categories) > 1 or 
+                len(orders) > 0 or
+                settings.get("shop_logo") or
+                settings.get("wechat_qr") or
+                settings.get("alipay_qr"))
+    except Exception:
+        return False
+
 def auto_commit():
     """Commit and push data to git."""
     token = os.environ.get("GH_TOKEN", "").strip()
     if not token:
         log_sync("SKIP: GH_TOKEN not set")
+        return
+    # Only push if there's real user data - don't overwrite git with empty defaults
+    if not has_real_data():
+        log_sync("SKIP: no real data to push (empty store)")
         return
     # Ensure git remote is configured (safety check)
     ensure_git_remote()
