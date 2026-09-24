@@ -84,7 +84,6 @@ def generate_order_number():
             pass
     return now + str(seq).zfill(2)
 
-SYNC_LOG = os.path.join(BASE_DIR, "data", "sync.log")
 
 def log_sync(msg):
     try:
