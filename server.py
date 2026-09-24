@@ -101,6 +101,8 @@ def auto_commit():
     if not token:
         log_sync("SKIP: GH_TOKEN not set")
         return
+    # Ensure git remote is configured (safety check)
+    ensure_git_remote()
     try:
         # Copy data from persistent volume to working dir for git
         import shutil
