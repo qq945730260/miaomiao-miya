@@ -109,6 +109,13 @@ def auto_commit():
             if os.path.exists(src):
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 shutil.copy2(src, dst)
+        # Also copy uploads directory from persistent volume
+        if os.path.exists(UPLOAD_DIR):
+            local_uploads = os.path.join(BASE_DIR, "uploads")
+            os.makedirs(local_uploads, exist_ok=True)
+            for f in os.listdir(UPLOAD_DIR):
+                if not f.startswith("."):
+                    shutil.copy2(os.path.join(UPLOAD_DIR, f), os.path.join(local_uploads, f))
         r = subprocess.run(["git", "-c", "safe.directory=*", "add", "-A", "data/", "uploads/"],
             capture_output=True, timeout=10, cwd=BASE_DIR)
 
@@ -698,6 +705,15 @@ def main():
             if os.path.exists(src):
                 shutil.copy2(src, dst)
                 print('[V7] Copied ' + f + ' to persistent volume', flush=True)
+        # Also copy uploads from git to persistent volume
+        local_uploads = os.path.join(BASE_DIR, 'uploads')
+        if os.path.exists(local_uploads):
+            vol_uploads = os.path.join(DATA_DIR, 'uploads')
+            os.makedirs(vol_uploads, exist_ok=True)
+            for f in os.listdir(local_uploads):
+                if not f.startswith('.'):
+                    shutil.copy2(os.path.join(local_uploads, f), os.path.join(vol_uploads, f))
+                    print('[V7] Copied upload: ' + f + ' to persistent volume', flush=True)
     else:
         print('[V7] Local data exists (' + str(os.path.getsize(STORE_FILE)) + ' bytes), skipping git pull', flush=True)
     
