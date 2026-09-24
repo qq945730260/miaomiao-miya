@@ -685,18 +685,21 @@ def main():
         print("[V7] Using local storage: " + DATA_DIR, flush=True)
     print("[V7] Data file: " + STORE_FILE, flush=True)
     print("[V7] Store exists: " + str(os.path.exists(STORE_FILE)), flush=True)
-    # Always pull from git first to get latest data
+    # Only pull from git if persistent volume has no data
     ensure_git_remote()
-    print('[V7] Pulling from git...', flush=True)
-    pull_data_from_git()
-    # Copy pulled data to persistent volume
-    import shutil
-    for f in ['store.json', 'sync.log']:
-        src = os.path.join(BASE_DIR, 'data', f)
-        dst = os.path.join(DATA_DIR, f)
-        if os.path.exists(src):
-            shutil.copy2(src, dst)
-            print('[V7] Copied ' + f + ' to persistent volume', flush=True)
+    if not os.path.exists(STORE_FILE) or os.path.getsize(STORE_FILE) < 100:
+        print('[V7] No local data, pulling from git...', flush=True)
+        pull_data_from_git()
+        # Copy pulled data to persistent volume
+        import shutil
+        for f in ['store.json', 'sync.log']:
+            src = os.path.join(BASE_DIR, 'data', f)
+            dst = os.path.join(DATA_DIR, f)
+            if os.path.exists(src):
+                shutil.copy2(src, dst)
+                print('[V7] Copied ' + f + ' to persistent volume', flush=True)
+    else:
+        print('[V7] Local data exists (' + str(os.path.getsize(STORE_FILE)) + ' bytes), skipping git pull', flush=True)
     
     # Load store data
     store = load_store()
