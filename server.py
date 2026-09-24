@@ -167,6 +167,9 @@ def auto_commit():
 def ensure_git_remote():
     """Ensure git remote origin is configured."""
     try:
+        # First, ensure .git directory exists
+        r_init = subprocess.run(["git", "-c", "safe.directory=*", "init", "-q"],
+            capture_output=True, timeout=5, cwd=BASE_DIR)
         r = subprocess.run(["git", "-c", "safe.directory=*", "remote", "get-url", "origin"],
             capture_output=True, text=True, timeout=5, cwd=BASE_DIR)
         if r.returncode != 0:
@@ -176,7 +179,11 @@ def ensure_git_remote():
                 url = "https://x-access-token:" + token + "@github.com/qq945730260/miaomiao-miya.git"
                 subprocess.run(["git", "-c", "safe.directory=*", "remote", "add", "origin", url],
                     capture_output=True, timeout=5, cwd=BASE_DIR)
-                log_sync("SETUP: git remote origin configured")
+                log_sync("SETUP: git init + remote configured")
+            else:
+                log_sync("SETUP WARN: GH_TOKEN not set, cannot configure git remote")
+        else:
+            log_sync("SETUP: git remote already exists")
     except Exception as e:
         log_sync("SETUP WARN: " + str(e))
 
