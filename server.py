@@ -13,6 +13,7 @@ else:
     UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 STORE_FILE = os.path.join(DATA_DIR, "store.json")
+SYNC_LOG = os.path.join(DATA_DIR, "sync.log")
 ADMIN_USER = "xuxu"
 ADMIN_PASS = "5361172"
 SESSION_TTL = 86400
@@ -131,7 +132,7 @@ def auto_commit():
         # Always update sync log to ensure git detects changes
         if os.path.exists(os.path.join(BASE_DIR, "data", "sync.log")):
             with open(SYNC_LOG, "a") as sf:
-                sf.write("PULSE: " + time.strftime("%Y-%m-%d %H:%M:%S") + "\\n")
+                sf.write("PULSE: " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
         r = subprocess.run(["git", "-c", "safe.directory=*", "add", "-A", "data/", "uploads/"],
             capture_output=True, timeout=10, cwd=BASE_DIR)
         log_sync("DEBUG: git add stdout=" + str(r.stdout))
