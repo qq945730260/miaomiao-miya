@@ -116,6 +116,17 @@ def auto_commit():
             for f in os.listdir(UPLOAD_DIR):
                 if not f.startswith("."):
                     shutil.copy2(os.path.join(UPLOAD_DIR, f), os.path.join(local_uploads, f))
+        # Debug logging
+        log_sync("DEBUG: DATA_DIR=" + DATA_DIR)
+        log_sync("DEBUG: UPLOAD_DIR=" + UPLOAD_DIR)
+        log_sync("DEBUG: BASE_DIR=" + BASE_DIR)
+        log_sync("DEBUG: STORE_FILE exists=" + str(os.path.exists(STORE_FILE)))
+        if os.path.exists(STORE_FILE):
+            log_sync("DEBUG: STORE_FILE size=" + str(os.path.getsize(STORE_FILE)))
+        if os.path.exists(os.path.join(BASE_DIR, "data")):
+            log_sync("DEBUG: local data files=" + str(os.listdir(os.path.join(BASE_DIR, "data"))))
+        if os.path.exists(os.path.join(BASE_DIR, "uploads")):
+            log_sync("DEBUG: local upload files=" + str(os.listdir(os.path.join(BASE_DIR, "uploads"))))
         r = subprocess.run(["git", "-c", "safe.directory=*", "add", "-A", "data/", "uploads/"],
             capture_output=True, timeout=10, cwd=BASE_DIR)
 
