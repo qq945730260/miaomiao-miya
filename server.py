@@ -853,6 +853,18 @@ def _startup_sync():
             except: pass
         else:
             print('[V7] Local data exists and is fresh (' + str(os.path.getsize(STORE_FILE)) + ' bytes), skipping git pull', flush=True)
+        # Always ensure uploads are in persistent volume (from working dir)
+        _local_up = os.path.join(BASE_DIR, "uploads")
+        if os.path.exists(_local_up):
+            _pers_up = os.path.join(DATA_DIR, "uploads")
+            os.makedirs(_pers_up, exist_ok=True)
+            _uc = 0
+            for fn in os.listdir(_local_up):
+                if not fn.startswith(".") and not fn.startswith(".gitkeep"):
+                    shutil.copy2(os.path.join(_local_up, fn), os.path.join(_pers_up, fn))
+                    _uc += 1
+            if _uc > 0:
+                print('[V7] Synced ' + str(_uc) + ' uploads to persistent volume', flush=True)
         if os.path.exists(STORE_FILE) and os.path.getsize(STORE_FILE) >= 100:
             print('[V7] Syncing local data to git on startup...', flush=True)
             auto_commit()
