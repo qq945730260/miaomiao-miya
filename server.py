@@ -793,7 +793,18 @@ def _startup_sync():
                     dst = os.path.join(DATA_DIR, fn)
                     if os.path.exists(src):
                         shutil.copy2(src, dst)
-                        print('[V7] Initialized from git', flush=True)
+                        print('[V7] Initialized ' + fn, flush=True)
+                # Also sync uploads from working dir to persistent volume
+                _local_uploads = os.path.join(BASE_DIR, 'uploads')
+                if os.path.exists(_local_uploads):
+                    _persist_uploads = os.path.join(DATA_DIR, 'uploads')
+                    os.makedirs(_persist_uploads, exist_ok=True)
+                    _copied = 0
+                    for fn in os.listdir(_local_uploads):
+                        if not fn.startswith('.'):
+                            shutil.copy2(os.path.join(_local_uploads, fn), os.path.join(_persist_uploads, fn))
+                            _copied += 1
+                    print('[V7] Initialized ' + str(_copied) + ' uploads to persistent volume', flush=True)
             else:
                 print('[V7] Git has no real data, using embedded defaults', flush=True)
         elif (time.time() - os.path.getmtime(STORE_FILE)) > 3600:
@@ -823,6 +834,18 @@ def _startup_sync():
                         shutil.copy2(src, dst)
                         print('[V7] Synced ' + fn + ' to persistent volume', flush=True)
                         _pulled_ok = True
+            # Also sync uploads after pull
+            _local_up = os.path.join(BASE_DIR, 'uploads')
+            if os.path.exists(_local_up):
+                _pers_up = os.path.join(DATA_DIR, 'uploads')
+                os.makedirs(_pers_up, exist_ok=True)
+                _uc = 0
+                for fn in os.listdir(_local_up):
+                    if not fn.startswith('.'):
+                        shutil.copy2(os.path.join(_local_up, fn), os.path.join(_pers_up, fn))
+                        _uc += 1
+                if _uc > 0:
+                    print('[V7] Synced ' + str(_uc) + ' uploads to persistent volume', flush=True)
             if not _pulled_ok:
                 shutil.copy2(_backup, STORE_FILE)
                 print('[V7] Restored local data (git had no real data)', flush=True)
